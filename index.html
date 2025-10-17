@@ -7,10 +7,40 @@
 <link rel="stylesheet" href="style.css">
 <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
 <script src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js@3.3.2/aframe/build/aframe-ar.js"></script>
+<style>
+/* Overlay iniziale */
+#overlay {
+  position: fixed; inset:0; z-index:9999; display:flex; align-items:center; justify-content:center;
+  flex-direction: column; background: rgba(0,0,0,0.55); color:#fff;
+}
+#card {
+  background: linear-gradient(180deg,#2b0000,#4a0000); border:2px solid #ff4d4d;
+  padding: 18px 24px; border-radius:12px; text-align:center; min-width:260px;
+}
+#title { font-size:20px; font-weight:700; color:#ff8080; margin-bottom:8px; }
+#subtitle { font-size:14px; color:#ffd1d1; margin-bottom:12px; }
+.dots { display:flex; gap:10px; justify-content:center; margin-bottom:10px; }
+.dot { width:18px; height:18px; border-radius:50%; background:#ff4d4d; opacity:0.25;
+  animation: blink 1.2s infinite; display:inline-block; transform: translateY(0); }
+.dot:nth-child(1){animation-delay:0s;} .dot:nth-child(2){animation-delay:0.15s;} .dot:nth-child(3){animation-delay:0.3s;}
+@keyframes blink {0% {opacity:0.18; transform:translateY(0);}50% {opacity:1; transform:translateY(-6px);}100% {opacity:0.18; transform:translateY(0);}}
+#tapHint { margin-top:4px; font-size:13px; color:#fff7f7; background: rgba(255,255,255,0.06); padding:8px 12px; border-radius:8px;}
+
+/* Loghi fine video */
+#endOverlay {
+  position: fixed; inset:0; display:flex; justify-content:center; align-items:center;
+  gap:40px; z-index:9999; display:none;
+}
+#endOverlay img { width:60px; height:60px; cursor:pointer; }
+
+/* WhatsApp */
+#whatsapp { position: fixed; right:16px; bottom:16px; z-index:9998; }
+#whatsapp img { width:50px; height:50px; }
+</style>
 </head>
 <body>
 
-<!-- OVERLAY iniziale -->
+<!-- OVERLAY INIZIALE -->
 <div id="overlay">
   <div id="card">
     <div id="title">18 anni Davide</div>
@@ -20,16 +50,21 @@
   </div>
 </div>
 
-<!-- WhatsApp -->
-<div id="whatsapp"><a href="https://wa.me/393331234567" target="_blank" rel="noopener"><img src="whatsapp.png" alt="WhatsApp"></a></div>
+<!-- LOGHI FINE VIDEO -->
+<div id="endOverlay">
+  <img id="replayBtn" src="replay.png" alt="Replay">
+  <a href="https://wa.me/393331234567" target="_blank" rel="noopener">
+    <img src="whatsapp.png" alt="WhatsApp">
+  </a>
+</div>
 
 <!-- SCENA AR -->
 <a-scene embedded vr-mode-ui="enabled: false" renderer="logarithmicDepthBuffer: true;"
          arjs="sourceType: webcam; debugUIEnabled: false;">
-  
+
   <!-- MARKER PERSONALIZZATO -->
   <a-marker type="pattern" url="qr-marker.pat" id="marker">
-    
+
     <!-- OGGETTI FLUTTUANTI -->
     <a-box position="0 0.5 0" color="#ff0000" scale="0.4 0.4 0.4">
       <a-animation attribute="position" to="0 0.8 0" direction="alternate" dur="1200" repeat="indefinite"></a-animation>
@@ -39,13 +74,8 @@
     </a-sphere>
 
     <!-- VIDEO TRASPARENTE -->
-    <video id="my-video" src="video-demo.webm" loop autoplay playsinline style="display:none"></video>
+    <video id="my-video" src="video-demo.webm" loop playsinline style="display:none"></video>
     <a-plane position="0 0.5 0" rotation="-90 0 0" width="1" height="0.6" material="shader: flat; src: #my-video"></a-plane>
-
-    <!-- TESTO 3D -->
-    <a-entity position="0 1.2 0" rotation="-20 0 0" scale="1.6 1.6 1.6">
-      <a-text value="Benvenuto!" align="center" color="#ffe6e6" anchor="center"></a-text>
-    </a-entity>
 
   </a-marker>
 
@@ -56,36 +86,34 @@
 <!-- AUDIO DI SOTTOFONDO -->
 <a-entity sound="src: url(musica.mp3); autoplay: false; loop: true; volume: 0.5"></a-entity>
 
-<!-- SCRIPT -->
-<script src="script.js"></script>
 <script>
 (function() {
   const overlay = document.getElementById('overlay');
+  const endOverlay = document.getElementById('endOverlay');
   const videoEl = document.getElementById('my-video');
   const audioEl = document.querySelector('a-entity[sound]');
+  const replayBtn = document.getElementById('replayBtn');
 
+  // Avvio AR
   function startAR() {
-    if(!overlay) return;
     overlay.style.display = 'none';
-    console.log('[AR] Overlay nascosto, presentazione avviata');
-
-    if(videoEl) { videoEl.play(); }
-    if(audioEl) { audioEl.components.sound.playSound(); }
-
-    window.removeEventListener('click', startAR);
-    window.removeEventListener('touchstart', startAR);
+    endOverlay.style.display = 'none';
+    if(videoEl){ videoEl.currentTime=0; videoEl.play(); }
+    if(audioEl){ audioEl.components.sound.playSound(); }
   }
+
+  // Fine video
+  videoEl.addEventListener('ended', ()=>{
+    endOverlay.style.display = 'flex';
+    if(audioEl){ audioEl.components.sound.stopSound(); }
+  });
+
+  // Replay click
+  replayBtn.addEventListener('click', startAR);
 
   window.addEventListener('click', startAR);
   window.addEventListener('touchstart', startAR, {passive:true});
 
-  document.addEventListener('DOMContentLoaded', () => {
-    const marker = document.getElementById('marker');
-    if(marker) {
-      marker.addEventListener('markerFound', ()=>console.log('[AR] Marker trovato'));
-      marker.addEventListener('markerLost', ()=>console.log('[AR] Marker perso'));
-    }
-  });
 })();
 </script>
 
