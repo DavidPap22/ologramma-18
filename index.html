@@ -1,90 +1,139 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="it">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1.0, user-scalable=no" />
-  <title>Ologramma 18esimo - AR</title>
-  <link rel="stylesheet" href="style.css">
+  <title>AR — 18 anni Davide (pronto all'uso)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    html,body { height:100%; margin:0; background:#000; font-family:Arial, sans-serif; }
+    /* overlay di attesa (rosso come richiesto) */
+    #overlay {
+      position: fixed; inset: 0; z-index: 9999;
+      display: flex; align-items: center; justify-content: center;
+      background: rgba(0,0,0,0.55);
+      flex-direction: column;
+      color: #fff;
+    }
+    #card {
+      background: linear-gradient(180deg,#2b0000 0%, #4a0000 100%); /* scuro rosso */
+      border: 2px solid #ff4d4d;
+      padding: 18px 24px;
+      border-radius: 12px;
+      text-align: center;
+      min-width: 260px;
+      box-shadow: 0 8px 30px rgba(0,0,0,0.6);
+    }
+    #title { font-size: 20px; font-weight:700; color:#ff8080; margin-bottom:8px; }
+    #subtitle { font-size: 14px; color:#ffd1d1; margin-bottom:12px; }
+    /* pallini di caricamento grandi e visibili, posizionati sotto il testo */
+    .dots { display:flex; gap:10px; justify-content:center; margin-bottom:10px; }
+    .dot {
+      width:18px; height:18px; border-radius:50%;
+      background: #ff4d4d; opacity:0.25;
+      display:inline-block; transform: translateY(0);
+      animation: blink 1.2s infinite;
+    }
+    .dot:nth-child(1){ animation-delay: 0s; }
+    .dot:nth-child(2){ animation-delay: 0.15s; }
+    .dot:nth-child(3){ animation-delay: 0.3s; }
+    @keyframes blink {
+      0% { opacity:0.18; transform: translateY(0); }
+      50% { opacity:1; transform: translateY(-6px); }
+      100% { opacity:0.18; transform: translateY(0); }
+    }
+
+    #tapHint {
+      margin-top:4px; font-size:13px; color:#fff7f7;
+      background: rgba(255,255,255,0.06); padding:8px 12px; border-radius:8px;
+    }
+
+    /* whatsapp button (non toccare) */
+    #whatsapp { position: fixed; right: 16px; bottom: 16px; z-index: 9998; }
+    #whatsapp a {
+      display:inline-block; background:#25D366; color:#fff; padding:10px 14px; border-radius:50px; text-decoration:none; font-weight:700;
+      box-shadow: 0 6px 18px rgba(0,0,0,0.35);
+    }
+
+    /* assicurati che la scena A-Frame sia sotto l'overlay */
+    a-scene { height:100vh; width:100vw; display:block; }
+  </style>
+
   <!-- A-Frame -->
   <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
-  <!-- AR.js for A-Frame -->
-  <script src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js/aframe/build/aframe-ar.js"></script>
-  <!-- Particle component -->
-  <script src="https://cdn.jsdelivr.net/gh/IdeaSpaceVR/aframe-particle-system-component/dist/aframe-particle-system-component.min.js"></script>
+  <!-- AR.js for A-Frame (marker-based) -->
+  <script src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js@3.3.2/aframe/build/aframe-ar.js"></script>
 </head>
 <body>
-  <!-- Messaggio se NON mobile -->
-  <div id="desktopMessage" class="center-message" style="display:none;">
-    Apri questo link su smartphone o tablet per visualizzare l’esperienza AR.
+  <!-- OVERLAY di attesa, rosso e con tre pallini grandi -->
+  <div id="overlay" role="dialog" aria-modal="true">
+    <div id="card">
+      <div id="title">18 anni Davide</div>
+      <div id="subtitle">Preparazione ologramma — carico presentazione</div>
+
+      <div class="dots" aria-hidden="true">
+        <span class="dot"></span>
+        <span class="dot"></span>
+        <span class="dot"></span>
+      </div>
+
+      <div id="tapHint">Tocca lo schermo per avviare</div>
+    </div>
   </div>
 
-  <!-- Overlay "tappa per avviare" per aggirare autoplay policy -->
-  <div id="startOverlay" class="start-overlay">Tocca lo schermo per avviare</div>
+  <!-- WhatsApp quick button (opzionale) -->
+  <div id="whatsapp"><a href="https://wa.me/393331234567" target="_blank" rel="noopener">WA</a></div>
 
-  <!-- Scena AR (rimane nascosta su desktop) -->
-  <a-scene id="arScene" embedded arjs="sourceType: webcam; debugUIEnabled: false;" style="display:none;">
-    <a-assets>
-      <video id="videoTexture" src="video-demo.webm" playsinline webkit-playsinline crossorigin="anonymous"></video>
-      <audio id="bgMusic" src="musica.mp3" preload="auto"></audio>
-      <img id="whatsappTexture" src="whatsapp.png">
-      <img id="replayTexture" src="replay.png">
-    </a-assets>
+  <!-- A-Frame scene con AR.js -->
+  <a-scene embedded vr-mode-ui="enabled: false" renderer="logarithmicDepthBuffer: true;"
+           arjs="sourceType: webcam; debugUIEnabled: false;">
+    <!-- marker preset "hiro" (funziona subito) -->
+    <a-marker preset="hiro" id="marker">
+      <!-- ESEMPIO OGGETTI: placeholders visivi (qui tromba e Don Bosco come box/mesh) -->
+      <!-- Tromba (placeholder): sostituisci con il tuo modello glTF con gltf-model -->
+      <a-box id="tromba" position="-0.5 0.4 0" rotation="0 30 0" scale="0.4 0.4 0.4" material="color:#ffcc00"></a-box>
 
-    <!-- Marker pattern (.pat) generato dal tuo QR code -->
-    <a-marker type="pattern" url="qr-marker.pat">
+      <!-- Don Bosco (placeholder) -->
+      <a-cylinder id="donbosco" position="0.5 0.45 0" rotation="0 0 0" radius="0.2" height="0.8" material="color:#ffffff"></a-cylinder>
 
-      <!-- Ologramma: piano con video -->
-      <a-plane id="video-plane"
-               material="shader: flat; src: #videoTexture"
-               position="0 0 0"
-               rotation="-90 0 0"
-               width="1.2" height="0.68">
-      </a-plane>
+      <!-- Altro oggetto di esempio -->
+      <a-sphere id="palla" position="0 0.25 0" radius="0.18" material="color:#ff4d4d"></a-sphere>
 
-      <!-- Luce pulsante (anello) -->
-      <a-ring position="0 0.01 0" rotation="-90 0 0" radius-inner="0.5" radius-outer="0.9"
-              color="#ff0000" opacity="0.35">
-        <a-animation attribute="scale" from="1 1 1" to="1.18 1.18 1.18" dur="1200" direction="alternate" repeat="indefinite"></a-animation>
-      </a-ring>
-
-      <!-- Oggetti fluttuanti (interactables) -->
-      <a-box id="tromba" class="interactable" data-color="#ff0000" position="0.55 0.28 0" depth="0.08" height="0.18" width="0.45" color="#ff0000">
-        <a-animation attribute="rotation" to="0 360 0" dur="12000" repeat="indefinite"></a-animation>
-      </a-box>
-
-      <a-sphere id="nota1" class="interactable" data-color="#ff0000" position="-0.45 0.4 0" radius="0.09" color="#ff0000">
-        <a-animation attribute="position" direction="alternate" dur="3000" repeat="indefinite" from="-0.45 0.4 0" to="-0.45 0.6 0"></a-animation>
-      </a-sphere>
-
-      <a-sphere id="nota2" class="interactable" data-color="#ff0000" position="-0.28 0.5 0.18" radius="0.07" color="#ff0000">
-        <a-animation attribute="position" direction="alternate" dur="2800" repeat="indefinite" from="-0.28 0.5 0.18" to="-0.28 0.7 0.18"></a-animation>
-      </a-sphere>
-
-      <a-box id="donbosco" class="interactable" data-color="#000000" position="0 0.5 0.44" depth="0.08" height="0.28" width="0.18" color="#000000">
-        <a-animation attribute="rotation" to="0 360 0" dur="10000" repeat="indefinite"></a-animation>
-      </a-box>
-
-      <!-- Elementi informatici -->
-      <a-torus id="chip" class="interactable" data-color="#ff0000" position="0.48 0.58 -0.28" radius="0.09" radius-tubular="0.02" color="#ff0000">
-        <a-animation attribute="rotation" to="360 0 0" dur="7000" repeat="indefinite"></a-animation>
-      </a-torus>
-
-      <a-box id="computer" class="interactable" data-color="#000000" position="-0.55 0.28 -0.34" depth="0.04" height="0.09" width="0.09" color="#000000">
-        <a-animation attribute="rotation" to="0 360 0" dur="9000" repeat="indefinite"></a-animation>
-      </a-box>
-
-      <!-- Particelle base (più leggere per mobile) -->
-      <a-entity id="baseParticles" particle-system="preset: dust; particleCount: 25; color: #ff0000; size: 0.015; velocityValue: 0.03 0.05 0.03; positionSpread: 0.8 0.4 0.8"></a-entity>
-
-      <!-- Icone che appaiono quando il video finisce -->
-      <a-plane id="whatsapp" src="#whatsappTexture" width="0.28" height="0.28" position="0 0.52 0.68" visible="false" class="clickable"></a-plane>
-      <a-plane id="replay" src="#replayTexture" width="0.18" height="0.18" position="0.36 0.52 0.68" visible="false" class="clickable"></a-plane>
-
+      <!-- Testo 3D sopra gli oggetti -->
+      <a-entity position="0 1.2 0" rotation="-20 0 0" scale="1.6 1.6 1.6">
+        <a-text value="Benvenuto!" align="center" color="#ffe6e6" anchor="center"></a-text>
+      </a-entity>
     </a-marker>
 
+    <!-- camera richiesta da A-Frame/AR.js -->
     <a-entity camera></a-entity>
   </a-scene>
 
-  <script src="script.js"></script>
+  <script>
+    // gestione overlay: al primo tocco/click scompare e lascia la scena AR libera
+    (function() {
+      const overlay = document.getElementById('overlay');
+      function start() {
+        if (!overlay) return;
+        overlay.style.display = 'none';
+        // piccolo log per debugging
+        console.log('[AR] Avvio presentazione: overlay nascosto');
+        // rimuove l'handler per sicurezza
+        window.removeEventListener('click', start);
+        window.removeEventListener('touchstart', start);
+      }
+      // ascolta sia click che touchstart per mobile
+      window.addEventListener('click', start);
+      window.addEventListener('touchstart', start, {passive:true});
+
+      // aggiungo log per marker trovato/perso
+      document.addEventListener('DOMContentLoaded', () => {
+        const marker = document.getElementById('marker');
+        if (marker) {
+          marker.addEventListener('markerFound', () => console.log('[AR] Marker trovato'));
+          marker.addEventListener('markerLost',  () => console.log('[AR] Marker perso'));
+        }
+      });
+    })();
+  </script>
 </body>
 </html>
