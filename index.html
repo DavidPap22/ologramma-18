@@ -65,16 +65,17 @@
   <!-- MARKER PERSONALIZZATO -->
   <a-marker type="pattern" url="qr-marker.pat" id="marker">
 
-    <!-- OGGETTI FLUTTUANTI -->
-    <a-box position="0 0.5 0" color="#ff0000" scale="0.4 0.4 0.4">
+    <!-- OGGETTI FLUTTUANTI CON FUNZIONI DEFINITE -->
+    <a-entity id="box1" position="0 0.5 0" geometry="primitive: box; width:0.4; height:0.4; depth:0.4" material="color:#ff0000">
       <a-animation attribute="position" to="0 0.8 0" direction="alternate" dur="1200" repeat="indefinite"></a-animation>
-    </a-box>
-    <a-sphere position="0.5 0.3 0" color="#00ff00" radius="0.15">
+    </a-entity>
+
+    <a-entity id="sphere1" position="0.5 0.3 0" geometry="primitive: sphere; radius:0.15" material="color:#00ff00">
       <a-animation attribute="position" to="0.5 0.6 0" direction="alternate" dur="1000" repeat="indefinite"></a-animation>
-    </a-sphere>
+    </a-entity>
 
     <!-- VIDEO TRASPARENTE -->
-    <video id="my-video" src="video-demo.webm" loop playsinline style="display:none"></video>
+    <video id="my-video" src="video-demo.webm" playsinline style="display:none"></video>
     <a-plane position="0 0.5 0" rotation="-90 0 0" width="1" height="0.6" material="shader: flat; src: #my-video"></a-plane>
 
   </a-marker>
@@ -93,27 +94,38 @@
   const videoEl = document.getElementById('my-video');
   const audioEl = document.querySelector('a-entity[sound]');
   const replayBtn = document.getElementById('replayBtn');
+  const marker = document.getElementById('marker');
 
-  // Avvio AR
+  let started = false;
+
+  // Avvio AR al riconoscimento del marker e click overlay
   function startAR() {
-    overlay.style.display = 'none';
-    endOverlay.style.display = 'none';
+    if(started) return;
+    if(overlay) overlay.style.display = 'none';
+    if(endOverlay) endOverlay.style.display = 'none';
     if(videoEl){ videoEl.currentTime=0; videoEl.play(); }
     if(audioEl){ audioEl.components.sound.playSound(); }
+    started = true;
   }
 
-  // Fine video
+  // Marker found → avvio automatico AR
+  marker.addEventListener('markerFound', startAR);
+
+  // Fine video → mostra loghi
   videoEl.addEventListener('ended', ()=>{
     endOverlay.style.display = 'flex';
     if(audioEl){ audioEl.components.sound.stopSound(); }
   });
 
   // Replay click
-  replayBtn.addEventListener('click', startAR);
+  replayBtn.addEventListener('click', ()=>{
+    started = false;
+    startAR();
+  });
 
+  // Overlay click / touch iniziale
   window.addEventListener('click', startAR);
   window.addEventListener('touchstart', startAR, {passive:true});
-
 })();
 </script>
 
