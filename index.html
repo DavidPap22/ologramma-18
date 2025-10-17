@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1.0, user-scalable=no" />
+  <title>Ologramma 18esimo - AR</title>
+  <link rel="stylesheet" href="style.css">
+  <!-- A-Frame -->
+  <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
+  <!-- AR.js for A-Frame -->
+  <script src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js/aframe/build/aframe-ar.js"></script>
+  <!-- Particle component -->
+  <script src="https://cdn.jsdelivr.net/gh/IdeaSpaceVR/aframe-particle-system-component/dist/aframe-particle-system-component.min.js"></script>
+</head>
+<body>
+  <!-- Messaggio se NON mobile -->
+  <div id="desktopMessage" class="center-message" style="display:none;">
+    Apri questo link su smartphone o tablet per visualizzare l’esperienza AR.
+  </div>
+
+  <!-- Overlay "tappa per avviare" per aggirare autoplay policy -->
+  <div id="startOverlay" class="start-overlay">Tocca lo schermo per avviare</div>
+
+  <!-- Scena AR (rimane nascosta su desktop) -->
+  <a-scene id="arScene" embedded arjs="sourceType: webcam; debugUIEnabled: false;" style="display:none;">
+    <a-assets>
+      <video id="videoTexture" src="video-demo.webm" playsinline webkit-playsinline crossorigin="anonymous"></video>
+      <audio id="bgMusic" src="musica.mp3" preload="auto"></audio>
+      <img id="whatsappTexture" src="whatsapp.png">
+      <img id="replayTexture" src="replay.png">
+    </a-assets>
+
+    <!-- Marker pattern (.pat) generato dal tuo QR code -->
+    <a-marker type="pattern" url="qr-marker.pat">
+
+      <!-- Ologramma: piano con video -->
+      <a-plane id="video-plane"
+               material="shader: flat; src: #videoTexture"
+               position="0 0 0"
+               rotation="-90 0 0"
+               width="1.2" height="0.68">
+      </a-plane>
+
+      <!-- Luce pulsante (anello) -->
+      <a-ring position="0 0.01 0" rotation="-90 0 0" radius-inner="0.5" radius-outer="0.9"
+              color="#ff0000" opacity="0.35">
+        <a-animation attribute="scale" from="1 1 1" to="1.18 1.18 1.18" dur="1200" direction="alternate" repeat="indefinite"></a-animation>
+      </a-ring>
+
+      <!-- Oggetti fluttuanti (interactables) -->
+      <a-box id="tromba" class="interactable" data-color="#ff0000" position="0.55 0.28 0" depth="0.08" height="0.18" width="0.45" color="#ff0000">
+        <a-animation attribute="rotation" to="0 360 0" dur="12000" repeat="indefinite"></a-animation>
+      </a-box>
+
+      <a-sphere id="nota1" class="interactable" data-color="#ff0000" position="-0.45 0.4 0" radius="0.09" color="#ff0000">
+        <a-animation attribute="position" direction="alternate" dur="3000" repeat="indefinite" from="-0.45 0.4 0" to="-0.45 0.6 0"></a-animation>
+      </a-sphere>
+
+      <a-sphere id="nota2" class="interactable" data-color="#ff0000" position="-0.28 0.5 0.18" radius="0.07" color="#ff0000">
+        <a-animation attribute="position" direction="alternate" dur="2800" repeat="indefinite" from="-0.28 0.5 0.18" to="-0.28 0.7 0.18"></a-animation>
+      </a-sphere>
+
+      <a-box id="donbosco" class="interactable" data-color="#000000" position="0 0.5 0.44" depth="0.08" height="0.28" width="0.18" color="#000000">
+        <a-animation attribute="rotation" to="0 360 0" dur="10000" repeat="indefinite"></a-animation>
+      </a-box>
+
+      <!-- Elementi informatici -->
+      <a-torus id="chip" class="interactable" data-color="#ff0000" position="0.48 0.58 -0.28" radius="0.09" radius-tubular="0.02" color="#ff0000">
+        <a-animation attribute="rotation" to="360 0 0" dur="7000" repeat="indefinite"></a-animation>
+      </a-torus>
+
+      <a-box id="computer" class="interactable" data-color="#000000" position="-0.55 0.28 -0.34" depth="0.04" height="0.09" width="0.09" color="#000000">
+        <a-animation attribute="rotation" to="0 360 0" dur="9000" repeat="indefinite"></a-animation>
+      </a-box>
+
+      <!-- Particelle base (più leggere per mobile) -->
+      <a-entity id="baseParticles" particle-system="preset: dust; particleCount: 25; color: #ff0000; size: 0.015; velocityValue: 0.03 0.05 0.03; positionSpread: 0.8 0.4 0.8"></a-entity>
+
+      <!-- Icone che appaiono quando il video finisce -->
+      <a-plane id="whatsapp" src="#whatsappTexture" width="0.28" height="0.28" position="0 0.52 0.68" visible="false" class="clickable"></a-plane>
+      <a-plane id="replay" src="#replayTexture" width="0.18" height="0.18" position="0.36 0.52 0.68" visible="false" class="clickable"></a-plane>
+
+    </a-marker>
+
+    <a-entity camera></a-entity>
+  </a-scene>
+
+  <script src="script.js"></script>
+</body>
+</html>
