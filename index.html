@@ -1,88 +1,60 @@
-<!DOCTYPE html>
-<html lang="it">
+<!doctype html>
+<html>
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Ologramma AR — versione ottimizzata</title>
-
-  <!-- A-Frame + AR.js -->
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"/>
+  <title>MARKER TEST</title>
   <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
   <script src="https://cdn.rawgit.com/AR-js-org/AR.js/3.3.2/aframe/build/aframe-ar.js"></script>
-
-  <!-- particle system component -->
-  <script src="https://cdn.jsdelivr.net/gh/IdeaSpaceVR/aframe-particle-system-component@v1.0.2/dist/aframe-particle-system-component.min.js"></script>
-
-  <link rel="stylesheet" href="style.css">
+  <style>
+    html,body{height:100%;margin:0;background:#000}
+    a-scene, canvas { width:100vw !important; height:100vh !important; }
+    #info { position: fixed; left:10px; top:10px; z-index:9999; color:#0f0; background:rgba(0,0,0,0.5); padding:6px 10px; border-radius:6px; font-family:monospace; }
+    #hint { position: fixed; right:10px; top:10px; z-index:9999; color:#fff; background:rgba(0,0,0,0.5); padding:6px 10px; border-radius:6px; }
+  </style>
 </head>
 <body>
+  <div id="info">Marker: —</div>
+  <div id="hint">Mostra il marker stampato o su 2° schermo: quando rilevato vedrai "FOUND" e contorni AR.js</div>
 
-<!-- OVERLAY INIZIALE (rosso scuro) -->
-<div id="overlay" role="dialog" aria-modal="true">
-  <div id="card">
-    <div id="title">18 anni — Davide</div>
-    <div id="subtitle">Preparazione ologramma — carico presentazione</div>
-    <div class="dots"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>
-    <div id="tapHint">Tocca lo schermo per sbloccare</div>
-  </div>
-</div>
+  <a-scene embedded arjs="sourceType: webcam; debugUIEnabled: true;">
+    <!-- camera -->
+    <a-entity camera position="0 0 0"></a-entity>
 
-<!-- DEBUG BADGE: mostra stato marker -->
-<div id="debugBadge">Marker: —</div>
+    <!-- global visual (should be visible immediately) -->
+    <a-entity particle-system="preset: dust; color: #ff3333, #ff9999; particleCount: 150; size:0.04; positionSpread: 1.5 1 1.5;"></a-entity>
 
-<!-- LOGHI FINE VIDEO -->
-<img id="logoReplay" src="replay.png" alt="Replay" />
-<a id="waLink" href="https://wa.me/YOURNUMBER" target="_blank" rel="noopener"><img id="logoWhatsApp" src="whatsapp.png" alt="WhatsApp" /></a>
+    <!-- floating object visible immediately -->
+    <a-box position="0 0.8 -1" material="color:#ff7070" rotation="0 45 0" depth="0.3" width="0.35" height="0.35"></a-box>
 
-<!-- AUDIO & VIDEO (HTML hidden) -->
-<audio id="bgMusic" src="musica.mp3" loop preload="auto"></audio>
-<video id="my-video" src="video-demo.webm" preload="auto" playsinline webkit-playsinline crossorigin="anonymous" style="display:none"></video>
+    <!-- marker -->
+    <a-marker id="m" type="pattern" url="qr-marker.pat">
+      <a-ring rotation="-90 0 0" radius-inner="0.4" radius-outer="0.6" material="shader:flat; color:#ff4444; opacity:0.35"></a-ring>
+      <a-box position="0 0.5 0" depth="0.15" width="0.4" height="0.35" material="color:#ffeaea"></a-box>
+    </a-marker>
 
-<!-- A-FRAME / AR.SCENE
-     NOTE: renderer alpha true to allow camera feed as background -->
-<a-scene embedded
-         renderer="alpha: true; antialias: true;"
-         arjs="sourceType: webcam; debugUIEnabled: false; detectionMode: mono_and_matrix; matrixCodeType: 3x3;">
-  <!-- camera (no zoom) -->
-  <a-entity camera="fov: 60" position="0 0 0"></a-entity>
+    <a-entity camera></a-entity>
+  </a-scene>
 
-  <!-- PARTICELLE / FUMO GLOBALE (visibili subito) -->
-  <a-entity id="globalSmoke"
-            particle-system="preset: dust; color: #ff2b2b, #ff7777; particleCount: 280; size: 0.06; positionSpread: 2 1.2 2;">
-  </a-entity>
+  <script>
+    const badge = document.getElementById('info');
+    const marker = document.getElementById('m');
+    marker.addEventListener('markerFound', ()=> {
+      console.log('[TEST] markerFound');
+      badge.textContent = 'Marker: FOUND ✓';
+      badge.style.color = '#0f0';
+    });
+    marker.addEventListener('markerLost', ()=> {
+      console.log('[TEST] markerLost');
+      badge.textContent = 'Marker: LOST';
+      badge.style.color = '#f66';
+    });
 
-  <!-- OGGETTI FLOTTUANTI (visibili subito) -->
-  <!-- placeholders: sostituisci gltf-model urls se hai i file -->
-  <a-entity id="floating1" position="0.8 0.6 -0.6" scale="0.25 0.25 0.25"
-            geometry="primitive: box; width:0.3; height:0.3; depth:0.2"
-            material="color: #ff9f9f; emissive: #ff5050; emissiveIntensity:0.4"></a-entity>
-
-  <a-entity id="floating2" position="-0.9 0.45 -0.4" scale="0.22 0.22 0.22"
-            geometry="primitive: sphere; radius:0.18"
-            material="color: #ffd0d0; emissive: #ff5050; emissiveIntensity:0.35"></a-entity>
-
-  <!-- MARKER (pattern .pat) -->
-  <a-marker id="marker" type="pattern" url="qr-marker.pat">
-    <!-- glow locale (invisibile finché non markerFound) -->
-    <a-entity id="markerGlow" visible="false" position="0 0 0">
-      <a-ring rotation="-90 0 0" radius-inner="0.55" radius-outer="0.8"
-              material="shader:flat; color:#ff4444; opacity:0.35"></a-ring>
-      <a-ring rotation="-90 0 0" radius-inner="0.6" radius-outer="0.9"
-              material="shader:flat; color:#ff9999; opacity:0.15"></a-ring>
-    </a-entity>
-
-    <!-- VIDEO PLANE (nascosto all'inizio) -->
-    <a-plane id="videoPlane" visible="false" position="0 0.02 0" rotation="-90 0 0"
-             width="0.9" height="0.506" material="shader:flat; src:#my-video; transparent:true; side:double">
-    </a-plane>
-
-    <!-- particelle locali intorno al marker (visibili subito) -->
-    <a-entity id="markerSmoke" particle-system="preset: dust; color: #ff3b3b, #ff8080; particleCount: 120; size: 0.05; positionSpread: 0.5 0.5 0.5;"></a-entity>
-
-  </a-marker>
-
-  <a-entity camera></a-entity>
-</a-scene>
-
-<script src="script.js"></script>
+    // very small logger to console: show video elements & canvas
+    setTimeout(()=> {
+      console.log('[TEST] videos in DOM:', document.querySelectorAll('video').length);
+      console.log('[TEST] canvas present:', !!document.querySelector('canvas'));
+    }, 1200);
+  </script>
 </body>
 </html>
