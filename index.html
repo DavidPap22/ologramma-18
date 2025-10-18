@@ -1,88 +1,50 @@
 <!DOCTYPE html>
 <html lang="it">
 <head>
-<meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>18 anni Davide — AR (con ologrammi)</title>
-
-<!-- A-Frame + AR.js -->
-<script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
-<script src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js@3.3.2/aframe/build/aframe-ar.js"></script>
-
-<link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8">
+  <title>Ologramma AR</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="style.css">
+  <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
+  <script src="https://cdn.rawgit.com/AR-js-org/AR.js/3.3.2/aframe/build/aframe-ar.js"></script>
 </head>
 <body>
 
-<!-- Overlay di avvio -->
-<div id="overlay" role="dialog" aria-modal="true">
-  <div id="card">
-    <div id="title">18 anni Davide</div>
-    <div id="subtitle">Preparazione ologramma — carico presentazione</div>
-    <div class="dots"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>
-    <div id="tapHint">Tocca lo schermo per avviare</div>
-  </div>
+<!-- Overlay iniziale (rosso) -->
+<div id="overlay">
+  <h1>Ologramma 18 anni Davide</h1>
+  <p>tocca lo schermo per avviare<span id="dots">...</span></p>
 </div>
 
-<!-- Overlay fine video (Replay + WhatsApp) -->
-<div id="endOverlay" aria-hidden="true">
-  <div class="endBtn" id="replayBtn" title="Replay"><img src="replay.png" alt="Replay"></div>
-  <a class="endBtn" id="waBtn" href="https://wa.me/393331234567" target="_blank" rel="noopener"><img src="whatsapp.png" alt="WhatsApp"></a>
-</div>
+<!-- Indicatore marker (debug / cliccabile) -->
+<div id="markerHit">Marker non cliccato</div>
 
-<!-- piccolo WA flottante -->
-<div id="waFloat"><a href="https://wa.me/393331234567" target="_blank" rel="noopener"><img src="whatsapp.png" alt="WA"></a></div>
+<!-- Loghi finali -->
+<img id="logoReplay" src="replay.png" alt="Replay">
+<img id="logoWhatsApp" src="whatsapp.png" alt="WhatsApp">
 
-<!-- SCENA AR: alpha true per rendere il feed camera visibile dietro il canvas -->
-<a-scene embedded vr-mode-ui="enabled: false"
-         renderer="logarithmicDepthBuffer: true; alpha: true; antialias: true;"
-         arjs="sourceType: webcam; debugUIEnabled: false;">
+<!-- Musica -->
+<audio id="bgMusic" src="musica.mp3" loop></audio>
 
-  <!-- MARKER PERSONALIZZATO (qr-marker.pat) -->
+<!-- Video ologramma -->
+<video id="my-video" src="video-demo.webm" loop="false" preload="auto" playsinline webkit-playsinline></video>
+
+<!-- Scena A-Frame -->
+<a-scene embedded arjs="sourceType: webcam; debugUIEnabled: false;">
+  <!-- Camera ottimizzata -->
+  <a-entity camera="fov: 60; active: true" position="0 0 0"></a-entity>
+
+  <!-- Marker cliccabile -->
   <a-marker id="marker" type="pattern" url="qr-marker.pat">
-
-    <!-- EFFETTO ILLUMINAZIONE QR (anello + luce) -->
-    <a-ring id="qrHalo" position="0 0.01 0" rotation="-90 0 0" radius-inner="0.55" radius-outer="0.75"
-            material="color:#ffb3b3; shader:flat; opacity:0.0" visible="false"></a-ring>
-    <a-entity id="qrLight" light="type:point; intensity:0" position="0 0.5 0" visible="false"></a-entity>
-
-    <!-- PIANO VIDEO TRASPARENTE (mostrato solo a markerFound) -->
-    <video id="my-video" src="video-demo.webm" playsinline webkit-playsinline crossorigin="anonymous" style="display:none"></video>
-    <a-plane id="videoPlane" visible="false" position="0 0.55 0" rotation="-90 0 0" width="1.4" height="0.84"
-             material="shader:flat; src:#my-video; transparent:true"></a-plane>
-
-    <!-- ====== OGGETTI FLOTTUANTI (ognuno con ruolo) ====== -->
-    <!-- DON BOSCO (puoi sostituire con gltf-model: gltf-model="url(donbosco.glb)") -->
-    <a-entity id="donbosco" visible="false" position="-0.75 0.45 0" rotation="0 30 0" scale="0.6 0.6 0.6">
-      <a-box geometry="width:0.28; height:0.7; depth:0.2" material="color:#ffffff"></a-box>
-      <a-animation attribute="position" to="-0.75 0.95 0" direction="alternate" dur="1800" repeat="indefinite"></a-animation>
-    </a-entity>
-
-    <!-- TROMBA (sostituisci con modello reale se lo hai) -->
-    <a-entity id="tromba" visible="false" position="0.6 0.45 0" rotation="0 0 0" scale="0.5 0.5 0.5">
-      <a-cylinder radius="0.12" height="0.6" material="color:#ffcc00"></a-cylinder>
-      <a-animation attribute="rotation" to="0 360 0" dur="6000" repeat="indefinite"></a-animation>
-    </a-entity>
-
-    <!-- PALLA FLUTTUANTE -->
-    <a-entity id="palla" visible="false" position="0 0.35 -0.3" scale="0.25 0.25 0.25">
-      <a-sphere radius="0.15" material="color:#ff4d4d"></a-sphere>
-      <a-animation attribute="position" to="0 0.85 -0.3" direction="alternate" dur="1200" repeat="indefinite"></a-animation>
-    </a-entity>
-
-    <!-- TESTO 3D DINAMICO -->
-    <a-entity id="label1" visible="false" position="0 1.1 0" rotation="-20 0 0" scale="1.4 1.4 1.4">
-      <a-text value="Benvenuto!" align="center" color="#ffe6e6" anchor="center"></a-text>
-    </a-entity>
-
-    <!-- altri elementi che vuoi aggiungere (placeholder) -->
-    <a-entity id="extra1" visible="false" position="0.95 0.4 -0.1" scale="0.2 0.2 0.2">
-      <a-box depth="0.12" height="0.12" width="0.12" material="color:#88ccff"></a-box>
-      <a-animation attribute="rotation" to="0 360 0" dur="4500" repeat="indefinite"></a-animation>
-    </a-entity>
-
+    <a-plane id="videoPlane" visible="false" position="0 0.45 0.02" rotation="-90 0 0"
+             width="0.9" height="0.54"
+             material="shader:flat; src:#my-video; transparent:true; side:double"></a-plane>
+             
+    <!-- Oggetti fluttuanti -->
+    <a-entity id="tromba" gltf-model="#trombaModel" position="0.3 0 0" scale="0.2 0.2 0.2"></a-entity>
+    <a-entity id="donBosco" gltf-model="#donBoscoModel" position="-0.3 0 0" scale="0.2 0.2 0.2"></a-entity>
   </a-marker>
-
-  <!-- camera -->
+  
   <a-entity camera></a-entity>
 </a-scene>
 
