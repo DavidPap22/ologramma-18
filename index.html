@@ -1,55 +1,86 @@
 <!DOCTYPE html>
 <html lang="it">
 <head>
-  <meta charset="UTF-8">
-  <title>Ologramma AR</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link rel="stylesheet" href="style.css">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Ologramma AR — versione ottimizzata</title>
+
+  <!-- A-Frame + AR.js -->
   <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
   <script src="https://cdn.rawgit.com/AR-js-org/AR.js/3.3.2/aframe/build/aframe-ar.js"></script>
+
+  <!-- particle system component -->
+  <script src="https://cdn.jsdelivr.net/gh/IdeaSpaceVR/aframe-particle-system-component@v1.0.2/dist/aframe-particle-system-component.min.js"></script>
+
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-<!-- Overlay iniziale -->
-<div id="overlay">
-  <h1>Ologramma 18 anni Davide</h1>
-  <p>tocca lo schermo per sbloccare<span id="dots">...</span></p>
+<!-- OVERLAY INIZIALE (rosso scuro) -->
+<div id="overlay" role="dialog" aria-modal="true">
+  <div id="card">
+    <div id="title">18 anni — Davide</div>
+    <div id="subtitle">Preparazione ologramma — carico presentazione</div>
+    <div class="dots"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>
+    <div id="tapHint">Tocca lo schermo per sbloccare</div>
+  </div>
 </div>
 
-<!-- Loghi finali -->
-<img id="logoReplay" src="replay.png" alt="Replay">
-<img id="logoWhatsApp" src="whatsapp.png" alt="WhatsApp">
+<!-- DEBUG BADGE: mostra stato marker -->
+<div id="debugBadge">Marker: —</div>
 
-<!-- Musica di sottofondo -->
-<audio id="bgMusic" src="musica.mp3" loop></audio>
+<!-- LOGHI FINE VIDEO -->
+<img id="logoReplay" src="replay.png" alt="Replay" />
+<a id="waLink" href="https://wa.me/YOURNUMBER" target="_blank" rel="noopener"><img id="logoWhatsApp" src="whatsapp.png" alt="WhatsApp" /></a>
 
-<!-- Video ologramma -->
-<video id="my-video" src="video-demo.webm" preload="auto" playsinline webkit-playsinline></video>
+<!-- AUDIO & VIDEO (HTML hidden) -->
+<audio id="bgMusic" src="musica.mp3" loop preload="auto"></audio>
+<video id="my-video" src="video-demo.webm" preload="auto" playsinline webkit-playsinline crossorigin="anonymous" style="display:none"></video>
 
-<!-- Scena A-Frame AR -->
-<a-scene embedded arjs="sourceType: webcam; debugUIEnabled: false; detectionMode: mono_and_matrix; matrixCodeType: 3x3;">
-  
-  <!-- Camera AR -->
-  <a-entity camera position="0 0 0"></a-entity>
+<!-- A-FRAME / AR.SCENE
+     NOTE: renderer alpha true to allow camera feed as background -->
+<a-scene embedded
+         renderer="alpha: true; antialias: true;"
+         arjs="sourceType: webcam; debugUIEnabled: false; detectionMode: mono_and_matrix; matrixCodeType: 3x3;">
+  <!-- camera (no zoom) -->
+  <a-entity camera="fov: 60" position="0 0 0"></a-entity>
 
-  <!-- Particelle/fumo globale visibili subito -->
-  <a-entity id="interactiveSmoke" particle-system="preset: dust; color: #ff0000, #ff4444; particleCount: 300; size: 0.05; positionSpread: 3 2 3;"></a-entity>
+  <!-- PARTICELLE / FUMO GLOBALE (visibili subito) -->
+  <a-entity id="globalSmoke"
+            particle-system="preset: dust; color: #ff2b2b, #ff7777; particleCount: 280; size: 0.06; positionSpread: 2 1.2 2;">
+  </a-entity>
 
-  <!-- Oggetti fluttuanti visibili subito -->
-  <a-entity id="tromba" gltf-model="#trombaModel" position="0.5 0.2 0.2" scale="0.2 0.2 0.2"
-            material="shader: standard; emissive: #ff0000; emissiveIntensity: 0.5"></a-entity>
+  <!-- OGGETTI FLOTTUANTI (visibili subito) -->
+  <!-- placeholders: sostituisci gltf-model urls se hai i file -->
+  <a-entity id="floating1" position="0.8 0.6 -0.6" scale="0.25 0.25 0.25"
+            geometry="primitive: box; width:0.3; height:0.3; depth:0.2"
+            material="color: #ff9f9f; emissive: #ff5050; emissiveIntensity:0.4"></a-entity>
 
-  <a-entity id="donBosco" gltf-model="#donBoscoModel" position="-0.5 0.3 -0.2" scale="0.2 0.2 0.2"
-            material="shader: standard; emissive: #ff0000; emissiveIntensity: 0.5"></a-entity>
+  <a-entity id="floating2" position="-0.9 0.45 -0.4" scale="0.22 0.22 0.22"
+            geometry="primitive: sphere; radius:0.18"
+            material="color: #ffd0d0; emissive: #ff5050; emissiveIntensity:0.35"></a-entity>
 
-  <!-- Marker -->
+  <!-- MARKER (pattern .pat) -->
   <a-marker id="marker" type="pattern" url="qr-marker.pat">
-    <!-- Video plane, nascosto all’inizio -->
-    <a-plane id="videoPlane" visible="false" position="0 0 0" rotation="-90 0 0"
-             width="1" height="0.56"
-             material="shader: flat; src: #my-video; transparent: true; side:double"></a-plane>
+    <!-- glow locale (invisibile finché non markerFound) -->
+    <a-entity id="markerGlow" visible="false" position="0 0 0">
+      <a-ring rotation="-90 0 0" radius-inner="0.55" radius-outer="0.8"
+              material="shader:flat; color:#ff4444; opacity:0.35"></a-ring>
+      <a-ring rotation="-90 0 0" radius-inner="0.6" radius-outer="0.9"
+              material="shader:flat; color:#ff9999; opacity:0.15"></a-ring>
+    </a-entity>
+
+    <!-- VIDEO PLANE (nascosto all'inizio) -->
+    <a-plane id="videoPlane" visible="false" position="0 0.02 0" rotation="-90 0 0"
+             width="0.9" height="0.506" material="shader:flat; src:#my-video; transparent:true; side:double">
+    </a-plane>
+
+    <!-- particelle locali intorno al marker (visibili subito) -->
+    <a-entity id="markerSmoke" particle-system="preset: dust; color: #ff3b3b, #ff8080; particleCount: 120; size: 0.05; positionSpread: 0.5 0.5 0.5;"></a-entity>
+
   </a-marker>
 
+  <a-entity camera></a-entity>
 </a-scene>
 
 <script src="script.js"></script>
