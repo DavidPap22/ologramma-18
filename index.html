@@ -1,47 +1,51 @@
 <!DOCTYPE html>
 <html lang="it">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
 <title>18 anni Davide — AR</title>
-<link rel="stylesheet" href="style.css">
+
+<!-- A-Frame + AR.js -->
 <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
 <script src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js@3.3.2/aframe/build/aframe-ar.js"></script>
+
 <style>
-/* Overlay iniziale */
-#overlay {
-  position: fixed; inset:0; z-index:9999; display:flex; align-items:center; justify-content:center;
-  flex-direction: column; background: rgba(0,0,0,0.55); color:#fff;
-}
-#card {
-  background: linear-gradient(180deg,#2b0000,#4a0000); border:2px solid #ff4d4d;
-  padding: 18px 24px; border-radius:12px; text-align:center; min-width:260px;
-}
-#title { font-size:20px; font-weight:700; color:#ff8080; margin-bottom:8px; }
-#subtitle { font-size:14px; color:#ffd1d1; margin-bottom:12px; }
-.dots { display:flex; gap:10px; justify-content:center; margin-bottom:10px; }
-.dot { width:18px; height:18px; border-radius:50%; background:#ff4d4d; opacity:0.25;
-  animation: blink 1.2s infinite; display:inline-block; transform: translateY(0); }
-.dot:nth-child(1){animation-delay:0s;} .dot:nth-child(2){animation-delay:0.15s;} .dot:nth-child(3){animation-delay:0.3s;}
-@keyframes blink {0% {opacity:0.18; transform:translateY(0);}50% {opacity:1; transform:translateY(-6px);}100% {opacity:0.18; transform:translateY(0);}}
-#tapHint { margin-top:4px; font-size:13px; color:#fff7f7; background: rgba(255,255,255,0.06); padding:8px 12px; border-radius:8px;}
+  html,body { margin:0; height:100%; background:#000; font-family:Arial, sans-serif; }
+  /* Overlay iniziale */
+  #overlay { position:fixed; inset:0; z-index:9999; display:flex; align-items:center; justify-content:center;
+            background: rgba(0,0,0,0.55); }
+  #card { background: linear-gradient(180deg,#2b0000,#4a0000); border:2px solid #ff4d4d; padding:18px 22px; border-radius:12px; text-align:center; min-width:260px;}
+  #title { font-size:20px; font-weight:700; color:#ff8080; margin-bottom:6px; }
+  #subtitle { color:#ffd1d1; margin-bottom:10px; }
+  .dots { display:flex; gap:10px; justify-content:center; margin-bottom:8px; }
+  .dot { width:18px; height:18px; border-radius:50%; background:#ff4d4d; opacity:0.25; animation: blink 1.2s infinite; }
+  .dot:nth-child(1){animation-delay:0s;} .dot:nth-child(2){animation-delay:0.12s;} .dot:nth-child(3){animation-delay:0.24s;}
+  @keyframes blink {0%{opacity:.18;transform:translateY(0);}50%{opacity:1;transform:translateY(-6px);}100%{opacity:.18;transform:translateY(0);} }
+  #tapHint { margin-top:4px; font-size:13px; color:#fff7f7; background: rgba(255,255,255,0.04); padding:8px 12px; border-radius:8px; }
 
-/* Loghi fine video */
-#endOverlay {
-  position: fixed; inset:0; display:flex; justify-content:center; align-items:center;
-  gap:40px; z-index:9999; display:none;
-}
-#endOverlay img { width:60px; height:60px; cursor:pointer; }
+  /* overlay fine video: mostra i loghi */
+  #endOverlay {
+    position: fixed; inset:0; z-index:9999; display:none; align-items:center; justify-content:center; gap:32px;
+    background: rgba(0,0,0,0.6);
+  }
+  .endBtn { width:72px; height:72px; cursor:pointer; display:inline-block; border-radius:12px; border:2px solid rgba(255,255,255,0.08); background:rgba(255,255,255,0.02); padding:8px; }
+  .endBtn img { width:100%; height:100%; object-fit:contain; }
 
-/* WhatsApp */
-#whatsapp { position: fixed; right:16px; bottom:16px; z-index:9998; }
-#whatsapp img { width:50px; height:50px; }
+  /* small WA floating (non invasivo) */
+  #waFloat { position: fixed; right:14px; bottom:14px; z-index:9998; width:56px; height:56px; display:none; }
+  #waFloat img { width:100%; height:100%; object-fit:contain; }
+
+  /* A-Frame scene should fill screen */
+  a-scene { width:100vw; height:100vh; display:block; }
+
+  /* hide the default a-frame loading spinner if any */
+  .a-enter-vr-button { display:none !important; }
 </style>
 </head>
 <body>
 
-<!-- OVERLAY INIZIALE -->
-<div id="overlay">
+<!-- Overlay di avvio -->
+<div id="overlay" role="dialog" aria-modal="true">
   <div id="card">
     <div id="title">18 anni Davide</div>
     <div id="subtitle">Preparazione ologramma — carico presentazione</div>
@@ -50,82 +54,236 @@
   </div>
 </div>
 
-<!-- LOGHI FINE VIDEO -->
-<div id="endOverlay">
-  <img id="replayBtn" src="replay.png" alt="Replay">
-  <a href="https://wa.me/393331234567" target="_blank" rel="noopener">
+<!-- Overlay fine video -->
+<div id="endOverlay" aria-hidden="true">
+  <div class="endBtn" id="replayBtn" title="Replay">
+    <img src="replay.png" alt="Replay">
+  </div>
+  <a class="endBtn" id="waBtn" href="https://wa.me/393331234567" target="_blank" rel="noopener">
     <img src="whatsapp.png" alt="WhatsApp">
   </a>
 </div>
 
-<!-- SCENA AR -->
+<!-- piccolo WA flottante (compare dopo fine video se vuoi anche lì) -->
+<div id="waFloat"><a href="https://wa.me/393331234567" target="_blank" rel="noopener"><img src="whatsapp.png" alt="WhatsApp"></a></div>
+
+<!-- A-Frame + AR.js scena -->
 <a-scene embedded vr-mode-ui="enabled: false" renderer="logarithmicDepthBuffer: true;"
          arjs="sourceType: webcam; debugUIEnabled: false;">
 
-  <!-- MARKER PERSONALIZZATO -->
-  <a-marker type="pattern" url="qr-marker.pat" id="marker">
+  <!-- marker personalizzato: QR marker .pat -->
+  <a-marker id="marker" type="pattern" url="qr-marker.pat">
+    <!-- EFFETTO ILLUMINAZIONE QR: anello + light (appare solo quando marker trovato) -->
+    <a-ring id="qrHalo" position="0 0.01 0" rotation="-90 0 0" radius-inner="0.55" radius-outer="0.75"
+            material="color:#ffb3b3; shader:flat; opacity:0.0" visible="false"></a-ring>
+    <a-entity id="qrLight" light="type:point; intensity:0" position="0 0.5 0" visible="false"></a-entity>
 
-    <!-- OGGETTI FLUTTUANTI CON FUNZIONI DEFINITE -->
-    <a-entity id="box1" position="0 0.5 0" geometry="primitive: box; width:0.4; height:0.4; depth:0.4" material="color:#ff0000">
-      <a-animation attribute="position" to="0 0.8 0" direction="alternate" dur="1200" repeat="indefinite"></a-animation>
+    <!-- PIANO VIDEO (trasparente) - nascosto finché marker non trovato -->
+    <video id="my-video" src="video-demo.webm" playsinline webkit-playsinline crossorigin="anonymous" style="display:none"></video>
+    <a-plane id="videoPlane" visible="false" position="0 0.5 0" rotation="-90 0 0" width="1.2" height="0.72"
+             material="shader:flat; src:#my-video; transparent:true"></a-plane>
+
+    <!-- OGGETTI FLOTTUANTI (inizialmente nascosti) - mantieni i loro compiti -->
+    <!-- Don Bosco (esempio: usa gltf-model se hai il file, qui placeholder) -->
+    <a-entity id="donbosco" visible="false" position="-0.5 0.45 0" rotation="0 45 0" scale="0.5 0.5 0.5">
+      <!-- sostituisci geometry con gltf-model se hai il file: gltf-model="url(donbosco.glb)" -->
+      <a-box geometry="width:0.25; height:0.6; depth:0.2" material="color:#ffffff"></a-box>
+      <a-animation attribute="position" to="-0.5 0.9 0" direction="alternate" dur="1600" repeat="indefinite"></a-animation>
     </a-entity>
 
-    <a-entity id="sphere1" position="0.5 0.3 0" geometry="primitive: sphere; radius:0.15" material="color:#00ff00">
-      <a-animation attribute="position" to="0.5 0.6 0" direction="alternate" dur="1000" repeat="indefinite"></a-animation>
+    <!-- Tromba -->
+    <a-entity id="tromba" visible="false" position="0.4 0.45 0" rotation="0 0 0" scale="0.45 0.45 0.45">
+      <!-- sostituisci con modello reale -->
+      <a-cylinder radius="0.12" height="0.6" material="color:#ffcc00"></a-cylinder>
+      <a-animation attribute="rotation" to="0 360 0" dur="6000" repeat="indefinite"></a-animation>
     </a-entity>
 
-    <!-- VIDEO TRASPARENTE -->
-    <video id="my-video" src="video-demo.webm" playsinline style="display:none"></video>
-    <a-plane position="0 0.5 0" rotation="-90 0 0" width="1" height="0.6" material="shader: flat; src: #my-video"></a-plane>
+    <!-- altri elementi, tutti inizialmente visible=false -->
+    <a-entity id="floating1" visible="false" position="0 0.35 -0.2" scale="0.25 0.25 0.25">
+      <a-sphere radius="0.15" material="color:#ff4d4d"></a-sphere>
+      <a-animation attribute="position" to="0 0.8 -0.2" direction="alternate" dur="1200" repeat="indefinite"></a-animation>
+    </a-entity>
 
   </a-marker>
 
-  <!-- CAMERA -->
+  <!-- camera -->
   <a-entity camera></a-entity>
 </a-scene>
 
-<!-- AUDIO DI SOTTOFONDO -->
-<a-entity sound="src: url(musica.mp3); autoplay: false; loop: true; volume: 0.5"></a-entity>
-
+<!-- Audio di sottofondo: non usiamo il componente sound per l'affidabilità, useremo un oggetto Audio in JS -->
+<!-- NOTA: la musica verrà gestita in JS per riproduzione sicura dopo gesture -->
+<!-- Script di controllo -->
 <script>
 (function() {
+  // elementi DOM
   const overlay = document.getElementById('overlay');
   const endOverlay = document.getElementById('endOverlay');
-  const videoEl = document.getElementById('my-video');
-  const audioEl = document.querySelector('a-entity[sound]');
+  const waFloat = document.getElementById('waFloat');
   const replayBtn = document.getElementById('replayBtn');
+
   const marker = document.getElementById('marker');
+  const videoEl = document.getElementById('my-video');
+  const videoPlane = document.getElementById('videoPlane');
 
-  let started = false;
+  const halo = document.getElementById('qrHalo');
+  const qrLight = document.getElementById('qrLight');
 
-  // Avvio AR al riconoscimento del marker e click overlay
-  function startAR() {
-    if(started) return;
-    if(overlay) overlay.style.display = 'none';
-    if(endOverlay) endOverlay.style.display = 'none';
-    if(videoEl){ videoEl.currentTime=0; videoEl.play(); }
-    if(audioEl){ audioEl.components.sound.playSound(); }
-    started = true;
+  const don = document.getElementById('donbosco');
+  const tromba = document.getElementById('tromba');
+  const floating1 = document.getElementById('floating1');
+
+  // crea audio di sottofondo come oggetto HTMLAudioElement per maggiore controllo
+  const bgAudio = new Audio('musica.mp3');
+  bgAudio.loop = true;
+  bgAudio.preload = 'auto';
+  bgAudio.volume = 0.55;
+
+  // stato
+  let userStarted = false;   // l'utente ha dato gesture iniziale
+  let sessionPlaying = false; // video/session in corso
+
+  // Utility: mostra gli oggetti dell'ologramma
+  function showHologramObjects(show) {
+    const elems = [videoPlane, don, tromba, floating1, halo, qrLight];
+    elems.forEach(el => {
+      if (!el) return;
+      // a-entities use setAttribute('visible', true/false)
+      if (el.setAttribute) {
+        el.setAttribute('visible', show);
+      } else { /* nothing */ }
+    });
   }
 
-  // Marker found → avvio automatico AR
-  marker.addEventListener('markerFound', startAR);
+  // funzione che accende l'effetto halo (pulsazione) quando marker trovato
+  function startHaloPulse() {
+    halo.setAttribute('visible', true);
+    qrLight.setAttribute('visible', true);
+    // animazione manuale: cambia opacità e light intensity con setInterval
+    let t = 0;
+    if (halo._pulseInterval) clearInterval(halo._pulseInterval);
+    halo._pulseInterval = setInterval(()=> {
+      t += 0.06;
+      const opacity = 0.25 + Math.abs(Math.sin(t)) * 0.75; // 0.25 - 1.0
+      halo.setAttribute('material', 'opacity', opacity);
+      const intensity = 0.3 + Math.abs(Math.sin(t)) * 1.6; // 0.3 - 1.9
+      qrLight.setAttribute('light', 'intensity', intensity);
+    }, 60);
+  }
+  function stopHaloPulse() {
+    halo.setAttribute('visible', false);
+    qrLight.setAttribute('visible', false);
+    if (halo._pulseInterval) { clearInterval(halo._pulseInterval); halo._pulseInterval = null; }
+  }
 
-  // Fine video → mostra loghi
-  videoEl.addEventListener('ended', ()=>{
+  // Avvio sessione (parte solo dopo gesture utente)
+  function userGestureStart() {
+    if (userStarted) return;
+    userStarted = true;
+    // nascondi overlay solo quando il marker viene trovato o comunque nascondi subito per permettere gesture
+    overlay.style.display = 'none';
+    console.log('[AR] Gesture utente acquisita. Ora attendiamo il marker (scansiona il QR).');
+    // proviamo a pre-load/play il video e audio (play potrebbe essere bloccato se non associato a gesture; qui lo è)
+    videoEl.pause();
+    videoEl.currentTime = 0;
+    // play the video element muted briefly to ensure it can be used as a texture if needed - but we need audio in video,
+    // so we attempt normal play; browser may require gesture, but we have it.
+    const p = videoEl.play();
+    if (p !== undefined) {
+      p.then(()=> {
+        console.log('[AR] Video element ready (play returned). Pausiamo in attesa del marker.');
+        videoEl.pause(); // we only play when marker found
+      }).catch(err => {
+        console.warn('[AR] Video play blocked (preload) — will attempt play on markerFound. Err:', err);
+      });
+    }
+    // play background audio muted? we want audible background: play now (user gesture allowed)
+    bgAudio.play().catch(err => console.warn('[AR] bgAudio play blocked:', err));
+  }
+
+  // Quando marker viene rilevato -> accendiamo halo, mostriamo oggetti e facciamo partire il video (non interrompibile)
+  marker.addEventListener('markerFound', () => {
+    console.log('[AR] markerFound');
+    // effetto halo: accendi
+    startHaloPulse();
+
+    // se la sessione non è ancora partita, avviala
+    if (!sessionPlaying) {
+      // mostra gli oggetti / video plane
+      showHologramObjects(true);
+
+      // play the video and bg audio
+      // ensure video resets to 0 and is playing
+      videoEl.currentTime = 0;
+      const p = videoEl.play();
+      if (p && p.then) {
+        p.then(()=> {
+          console.log('[AR] Video playback started on markerFound.');
+        }).catch(err => {
+          console.warn('[AR] Video play on markerFound blocked:', err);
+        });
+      }
+      // Ensure bgAudio is playing (if not already)
+      if (bgAudio.paused) {
+        bgAudio.play().catch(err=>console.warn('[AR] bgAudio play err:', err));
+      }
+
+      sessionPlaying = true;
+    }
+  });
+
+  // markerLost: non fermare il video (progetto richiede che video continui anche se marker temporaneamente perso)
+  marker.addEventListener('markerLost', () => {
+    console.log('[AR] markerLost (non fermiamo il video)');
+    // manteniamo gli oggetti visibili. Se vuoi spegnerli dopo lungo tempo senza marker, qui si può gestire.
+  });
+
+  // quando il video finisce -> mostra overlay fine con bottoni e ferma bgAudio
+  videoEl.addEventListener('ended', () => {
+    console.log('[AR] video ended');
+    // fermiamo halo
+    stopHaloPulse();
+    // mostriamo overlay fine
     endOverlay.style.display = 'flex';
-    if(audioEl){ audioEl.components.sound.stopSound(); }
+    // optional: mostra anche piccolo WA flottante
+    waFloat.style.display = 'block';
+    // fermiamo la musica
+    try { bgAudio.pause(); bgAudio.currentTime = 0; } catch(e) {}
+    // session ended
+    sessionPlaying = false;
   });
 
-  // Replay click
-  replayBtn.addEventListener('click', ()=>{
-    started = false;
-    startAR();
+  // Replay: riavvia tutto (reset stato, nascondi overlay end, restart)
+  replayBtn.addEventListener('click', () => {
+    console.log('[AR] Replay clicked');
+    // nascondi overlay fine
+    endOverlay.style.display = 'none';
+    waFloat.style.display = 'none';
+    // reset video + audio
+    try { videoEl.currentTime = 0; videoEl.pause(); } catch(e){}
+    try { bgAudio.currentTime = 0; bgAudio.pause(); } catch(e){}
+    sessionPlaying = false;
+    // se l'utente aveva gia' dato gesture userStarted true -> play immediately if marker present
+    if (userStarted) {
+      // if marker currently visible -> trigger markerFound handler or directly start playback
+      // easiest: attempt to play video now; it will show when markerFound event fires or plane visible
+      // ensure objects visible
+      showHologramObjects(true);
+      videoEl.play().catch(err => console.warn('[AR] replay video play err', err));
+      bgAudio.play().catch(err => console.warn('[AR] replay bgAudio play err', err));
+      sessionPlaying = true;
+    } else {
+      // if user didn't give gesture yet, show initial overlay to require a tap
+      overlay.style.display = 'flex';
+    }
   });
 
-  // Overlay click / touch iniziale
-  window.addEventListener('click', startAR);
-  window.addEventListener('touchstart', startAR, {passive:true});
+  // inizio: ascolta il primo tap / touch per sbloccare autoplay e segnare userStarted
+  function onUserTapOnce() { userGestureStart(); window.removeEventListener('click', onUserTapOnce); window.removeEventListener('touchstart', onUserTapOnce); }
+  window.addEventListener('click', onUserTapOnce);
+  window.addEventListener('touchstart', onUserTapOnce, {passive:true});
+
+  // nascondi oggetti inizialmente (safety)
+  showHologramObjects(false);
 })();
 </script>
 
