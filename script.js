@@ -4,11 +4,13 @@ const bgMusic = document.getElementById('bgMusic');
 const video = document.getElementById('my-video');
 const videoPlane = document.getElementById('videoPlane');
 const marker = document.getElementById('marker');
+const tromba = document.getElementById('tromba');
+const donBosco = document.getElementById('donBosco');
 const logoReplay = document.getElementById('logoReplay');
 const logoWhatsApp = document.getElementById('logoWhatsApp');
-const markerHit = document.getElementById('markerHit');
 
-let markerClicked = false;
+let markerVisible = false;
+let videoStarted = false;
 
 // Overlay tappabile
 overlay.addEventListener('click', () => {
@@ -16,29 +18,48 @@ overlay.addEventListener('click', () => {
   bgMusic.play();
 });
 
-// Animazione puntini
+// Puntini animati
 let dotInterval = setInterval(() => {
   dots.textContent = dots.textContent.length < 3 ? dots.textContent + '.' : '';
 }, 500);
 
-// Marker click (avvia video e oggetti)
-markerHit.addEventListener('click', () => {
-  if(!markerClicked) {
-    markerClicked = true;
-    markerHit.textContent = 'Marker cliccato';
-    startOlogramma();
-  }
+// Marker rilevato
+marker.addEventListener('markerFound', () => {
+  console.log('Marker trovato!');
+  markerVisible = true;
+  // eventualmente aggiungere effetti luminosi rossi/fumo
 });
 
-function startOlogramma() {
-  videoPlane.setAttribute('visible', 'true');
-  video.play();
-  // quando il video finisce
-  video.onended = () => {
-    logoReplay.style.display = 'block';
-    logoWhatsApp.style.display = 'block';
-  };
-}
+// Marker perso
+marker.addEventListener('markerLost', () => {
+  console.log('Marker perso');
+  markerVisible = false;
+});
+
+// Tap sullo schermo per avviare video e oggetti
+document.body.addEventListener('click', () => {
+  if(markerVisible && !videoStarted) {
+    videoStarted = true;
+    // mostra video e oggetti
+    videoPlane.setAttribute('visible', 'true');
+    tromba.setAttribute('visible', 'true');
+    donBosco.setAttribute('visible', 'true');
+
+    // animazioni di entrata
+    videoPlane.setAttribute('animation', 'property: scale; from: 0 0 0; to: 1 1 1; dur: 1000; easing: easeOutElastic');
+    tromba.setAttribute('animation', 'property: scale; from: 0 0 0; to: 0.2 0.2 0.2; dur: 1000; easing: easeOutElastic');
+    donBosco.setAttribute('animation', 'property: scale; from: 0 0 0; to: 0.2 0.2 0.2; dur: 1000; easing: easeOutElastic');
+
+    // avvia video
+    video.play();
+
+    // quando il video finisce mostra loghi
+    video.onended = () => {
+      logoReplay.style.display = 'block';
+      logoWhatsApp.style.display = 'block';
+    };
+  }
+});
 
 // Replay click
 logoReplay.addEventListener('click', () => {
@@ -51,15 +72,4 @@ logoReplay.addEventListener('click', () => {
 // WhatsApp click
 logoWhatsApp.addEventListener('click', () => {
   window.open('https://wa.me/tuonumero', '_blank');
-});
-
-// AR marker detection
-marker.addEventListener('markerFound', () => {
-  console.log('Marker trovato!');
-  markerHit.style.display = 'block';
-  markerHit.textContent = 'Marker pronto, clicca per avviare';
-});
-
-marker.addEventListener('markerLost', () => {
-  console.log('Marker perso');
 });

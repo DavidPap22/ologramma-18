@@ -10,14 +10,11 @@
 </head>
 <body>
 
-<!-- Overlay iniziale (rosso) -->
+<!-- Overlay iniziale -->
 <div id="overlay">
   <h1>Ologramma 18 anni Davide</h1>
-  <p>tocca lo schermo per avviare<span id="dots">...</span></p>
+  <p>tocca lo schermo per sbloccare<span id="dots">...</span></p>
 </div>
-
-<!-- Indicatore marker (debug / cliccabile) -->
-<div id="markerHit">Marker non cliccato</div>
 
 <!-- Loghi finali -->
 <img id="logoReplay" src="replay.png" alt="Replay">
@@ -30,22 +27,26 @@
 <video id="my-video" src="video-demo.webm" loop="false" preload="auto" playsinline webkit-playsinline></video>
 
 <!-- Scena A-Frame -->
-<a-scene embedded arjs="sourceType: webcam; debugUIEnabled: false;">
-  <!-- Camera ottimizzata -->
-  <a-entity camera="fov: 60; active: true" position="0 0 0"></a-entity>
+<a-scene embedded arjs="sourceType: webcam; debugUIEnabled: false; detectionMode: mono_and_matrix; matrixCodeType: 3x3;">
+  <!-- Camera AR -->
+  <a-entity camera position="0 0 0"></a-entity>
 
-  <!-- Marker cliccabile -->
+  <!-- Marker -->
   <a-marker id="marker" type="pattern" url="qr-marker.pat">
-    <a-plane id="videoPlane" visible="false" position="0 0.45 0.02" rotation="-90 0 0"
-             width="0.9" height="0.54"
-             material="shader:flat; src:#my-video; transparent:true; side:double"></a-plane>
-             
+    
+    <!-- Video plane -->
+    <a-plane id="videoPlane" visible="false" position="0 0 0" rotation="-90 0 0"
+             width="1" height="0.56"
+             material="shader: flat; src: #my-video; transparent: true; side:double">
+    </a-plane>
+
     <!-- Oggetti fluttuanti -->
-    <a-entity id="tromba" gltf-model="#trombaModel" position="0.3 0 0" scale="0.2 0.2 0.2"></a-entity>
-    <a-entity id="donBosco" gltf-model="#donBoscoModel" position="-0.3 0 0" scale="0.2 0.2 0.2"></a-entity>
+    <a-entity id="tromba" gltf-model="#trombaModel" position="0.3 0 0" scale="0.2 0.2 0.2" visible="false"></a-entity>
+    <a-entity id="donBosco" gltf-model="#donBoscoModel" position="-0.3 0 0" scale="0.2 0.2 0.2" visible="false"></a-entity>
+
+    <!-- Particelle/fumo rosso -->
+    <a-entity particle-system="preset: dust; color: #ff0000, #ff4444; particleCount: 200; size: 0.05; positionSpread: 0.5 0.5 0.5;"></a-entity>
   </a-marker>
-  
-  <a-entity camera></a-entity>
 </a-scene>
 
 <script src="script.js"></script>

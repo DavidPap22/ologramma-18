@@ -7,14 +7,13 @@ body, html {
 }
 
 a-scene, a-scene canvas, .a-canvas {
-  transform: none !important;
   width: 100vw !important;
   height: 100vh !important;
   background: transparent !important;
   object-fit: cover !important;
 }
 
-/* Overlay iniziale rosso */
+/* Overlay rosso */
 #overlay {
   position: fixed;
   top:0;
@@ -35,19 +34,6 @@ a-scene, a-scene canvas, .a-canvas {
 
 #dots {
   font-weight:bold;
-}
-
-/* Marker cliccabile */
-#markerHit {
-  position: fixed;
-  left: 10px;
-  top: 10px;
-  z-index: 10000;
-  padding: 6px 10px;
-  border-radius: 8px;
-  background: rgba(0,0,0,0.5);
-  color: #b7ffb7;
-  font-weight:700;
 }
 
 /* Loghi finali */
