@@ -8,7 +8,6 @@ const tromba = document.getElementById('tromba');
 const donBosco = document.getElementById('donBosco');
 const logoReplay = document.getElementById('logoReplay');
 const logoWhatsApp = document.getElementById('logoWhatsApp');
-const redGlow = document.getElementById('redGlow');
 const interactiveSmoke = document.getElementById('interactiveSmoke');
 const camera = document.querySelector('a-entity[camera]');
 
@@ -30,48 +29,17 @@ let dotInterval = setInterval(() => {
 marker.addEventListener('markerFound', () => markerVisible = true);
 marker.addEventListener('markerLost', () => markerVisible = false);
 
-// Funzione glow pulsante per oggetti
-function animateGlow(obj) {
-  let intensity = 0.5;
-  let direction = 1;
-  function pulse() {
-    intensity += direction * 0.01;
-    if(intensity >= 1) direction = -1;
-    if(intensity <= 0.3) direction = 1;
-    obj.setAttribute('material', 'emissiveIntensity', intensity);
-    requestAnimationFrame(pulse);
-  }
-  pulse();
-}
-
-// Tap sullo schermo
+// Tap sullo schermo per avviare il video
 document.body.addEventListener('click', () => {
   if(markerVisible && !videoStarted) {
     videoStarted = true;
 
-    // Mostra video, oggetti e glow
+    // Mostra video sopra marker
     videoPlane.setAttribute('visible', 'true');
-    tromba.setAttribute('visible', 'true');
-    donBosco.setAttribute('visible', 'true');
-    redGlow.setAttribute('visible', 'true');
-
-    // Animazione glow pulsante del marker
-    redGlow.setAttribute('animation', 'property: scale; from: 0.8 0.8 0.8; to: 1.2 1.2 1.2; dir: alternate; dur: 800; loop: true; easing: easeInOutSine');
-
-    // Animazioni di entrata degli oggetti
-    videoPlane.setAttribute('animation', 'property: scale; from: 0 0 0; to: 1 1 1; dur: 1000; easing: easeOutElastic');
-    tromba.setAttribute('animation', 'property: position; dir: alternate; loop: true; dur: 2000; to:0.5 0.4 0.2');
-    donBosco.setAttribute('animation', 'property: position; dir: alternate; loop: true; dur: 2500; to:-0.5 0.5 -0.2');
-
-    // Glow sugli oggetti
-    animateGlow(tromba);
-    animateGlow(donBosco);
-
-    // Abbassa musica
-    bgMusic.volume = 0.2;
-
-    // Avvia video
     video.play();
+
+    // Abbassa musica durante il video
+    bgMusic.volume = 0.2;
 
     // Fine video: mostra loghi e rialza musica
     video.onended = () => {
@@ -88,9 +56,7 @@ logoReplay.addEventListener('click', () => {
   logoWhatsApp.style.display = 'none';
   video.currentTime = 0;
   video.play();
-
-  videoPlane.setAttribute('animation', 'property: scale; from: 0 0 0; to: 1 1 1; dur: 1000; easing: easeOutElastic');
-  redGlow.setAttribute('animation', 'property: scale; from: 0.8 0.8 0.8; to: 1.2 1.2 1.2; dir: alternate; dur: 800; loop: true; easing: easeInOutSine');
+  bgMusic.volume = 0.2;
 });
 
 // WhatsApp click
@@ -98,7 +64,7 @@ logoWhatsApp.addEventListener('click', () => {
   window.open('https://wa.me/YOURNUMBER', '_blank');
 });
 
-// Particelle interattive fumo rosso
+// Particelle fumo rosso interattive
 function updateSmoke() {
   if(!camera) return;
   const camPos = camera.object3D.position;

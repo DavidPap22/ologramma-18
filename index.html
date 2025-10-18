@@ -7,7 +7,6 @@
   <link rel="stylesheet" href="style.css">
   <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
   <script src="https://cdn.rawgit.com/AR-js-org/AR.js/3.3.2/aframe/build/aframe-ar.js"></script>
-  <script src="https://cdn.jsdelivr.net/gh/donmccurdy/aframe-extras@6.1.1/dist/aframe-extras.min.js"></script>
 </head>
 <body>
 
@@ -33,34 +32,23 @@
   <!-- Camera AR -->
   <a-entity camera position="0 0 0"></a-entity>
 
+  <!-- Particelle/fumo globale visibili subito -->
+  <a-entity id="interactiveSmoke" particle-system="preset: dust; color: #ff0000, #ff4444; particleCount: 300; size: 0.05; positionSpread: 3 2 3;"></a-entity>
+
+  <!-- Oggetti fluttuanti visibili subito -->
+  <a-entity id="tromba" gltf-model="#trombaModel" position="0.5 0.2 0.2" scale="0.2 0.2 0.2"
+            material="shader: standard; emissive: #ff0000; emissiveIntensity: 0.5"></a-entity>
+
+  <a-entity id="donBosco" gltf-model="#donBoscoModel" position="-0.5 0.3 -0.2" scale="0.2 0.2 0.2"
+            material="shader: standard; emissive: #ff0000; emissiveIntensity: 0.5"></a-entity>
+
   <!-- Marker -->
   <a-marker id="marker" type="pattern" url="qr-marker.pat">
-    
-    <!-- Glow rosso pulsante intorno al marker -->
-    <a-entity id="redGlow">
-      <a-ring position="0 0 0" rotation="-90 0 0" radius-inner="0.6" radius-outer="0.8" color="#ff0000" opacity="0.5" material="shader: flat"></a-ring>
-      <a-ring position="0 0 0" rotation="-90 0 0" radius-inner="0.6" radius-outer="0.8" color="#ff6600" opacity="0.3" material="shader: flat"></a-ring>
-    </a-entity>
-
-    <!-- Plane per il video -->
+    <!-- Video plane, nascosto all’inizio -->
     <a-plane id="videoPlane" visible="false" position="0 0 0" rotation="-90 0 0"
              width="1" height="0.56"
-             material="shader: flat; src: #my-video; transparent: true; side:double">
-    </a-plane>
-
-    <!-- Oggetti fluttuanti con glow -->
-    <a-entity id="tromba" gltf-model="#trombaModel" position="0.5 0.2 0.2" scale="0.2 0.2 0.2" visible="false"
-              material="shader: standard; emissive: #ff0000; emissiveIntensity: 0.5"></a-entity>
-
-    <a-entity id="donBosco" gltf-model="#donBoscoModel" position="-0.5 0.3 -0.2" scale="0.2 0.2 0.2" visible="false"
-              material="shader: standard; emissive: #ff0000; emissiveIntensity: 0.5"></a-entity>
-
-    <!-- Particelle/fumo rosso attorno al marker -->
-    <a-entity particle-system="preset: dust; color: #ff0000, #ff4444; particleCount: 150; size: 0.05; positionSpread: 0.5 0.5 0.5;"></a-entity>
+             material="shader: flat; src: #my-video; transparent: true; side:double"></a-plane>
   </a-marker>
-
-  <!-- Particelle/fumo rosso globale nella scena -->
-  <a-entity id="interactiveSmoke" particle-system="preset: dust; color: #ff0000, #ff4444; particleCount: 300; size: 0.05; positionSpread: 3 2 3;"></a-entity>
 
 </a-scene>
 
