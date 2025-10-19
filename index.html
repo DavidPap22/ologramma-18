@@ -1,79 +1,83 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="it">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Invito - Video Demo</title>
-<link rel="stylesheet" href="styles.css" />
-<script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
-<script src="https://cdn.rawgit.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
+  <title>Ologramma AR — versione finale</title>
+
+  <!-- A-Frame + AR.js -->
+  <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
+  <script src="https://cdn.rawgit.com/AR-js-org/AR.js/3.3.2/aframe/build/aframe-ar.js"></script>
+
+  <!-- particle system component -->
+  <script src="https://cdn.jsdelivr.net/gh/IdeaSpaceVR/aframe-particle-system-component@v1.0.2/dist/aframe-particle-system-component.min.js"></script>
+
+  <link rel="stylesheet" href="style.css">
 </head>
-<body style="margin: 0; overflow: hidden;">
-<a-scene embedded arjs='sourceType: webcam;'>
+<body>
 
+  <!-- OVERLAY INIZIALE -->
+  <div id="overlay" role="dialog" aria-modal="true">
+    <div id="card">
+      <div id="title">18 anni — Davide</div>
+      <div id="subtitle">Preparazione ologramma — carico presentazione</div>
+      <div class="dots"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>
+      <div id="tapHint">Tocca lo schermo per sbloccare</div>
+      <div id="hintSmall">Dopo questo vedrai fumo e oggetti. Inquadra il marker e cliccaci per avviare il video.</div>
+    </div>
+  </div>
 
-<!-- Marker aggiornato -->
-<a-marker type="pattern" url="marker.patt">
-<a-entity geometry="primitive: box; width: 1; height: 1; depth: 1" material="color: red" position="0 0.5 0"></a-entity>
-</a-marker>
+  <!-- DEBUG BADGE -->
+  <div id="debugBadge">Marker: —</div>
 
+  <!-- LOGHI FINE VIDEO -->
+  <img id="logoReplay" src="replay.png" alt="Replay" />
+  <a id="waLink" href="https://wa.me/YOURNUMBER" target="_blank" rel="noopener">
+    <img id="logoWhatsApp" src="whatsapp.png" alt="WhatsApp" />
+  </a>
 
-<a-entity camera></a-entity>
+  <!-- AUDIO & VIDEO -->
+  <audio id="bgMusic" src="musica.mp3" loop preload="auto"></audio>
+  <video id="my-video" src="video-demo.webm" preload="auto" playsinline webkit-playsinline crossorigin="anonymous" style="display:none"></video>
 
+  <!-- A-FRAME / AR.SCENE -->
+  <a-scene embedded
+           renderer="alpha: true; antialias: true;"
+           arjs="sourceType: webcam; debugUIEnabled: true; detectionMode: mono_and_matrix; matrixCodeType: 3x3;">
+    <a-entity camera="fov: 60" position="0 0 0"></a-entity>
 
-</a-scene>
+    <!-- GLOBAL PARTICLES / SMOKE -->
+    <a-entity id="globalSmoke" particle-system="preset: dust; color: #ff2b2b, #ff7a7a; particleCount: 260; size: 0.05; positionSpread: 2 1.2 2;"></a-entity>
 
+    <!-- OGGETTI FLOTTUANTI -->
+    <a-entity id="floating1" position="0.8 0.6 -0.6" scale="0.26 0.26 0.26"
+              geometry="primitive: box; width:0.28; height:0.28; depth:0.18"
+              material="color: #ff9f9f; emissive: #ff5050; emissiveIntensity:0.45"
+              animation__float="property: position; to:0.8 0.9 -0.6; dir: alternate; dur: 1800; loop: true"></a-entity>
 
-<main id="app">
-<header>
-<h1>Invito - Video Demo</h1>
-<p>Video: <strong>video-demo.webm</strong></p>
-</header>
+    <a-entity id="floating2" position="-0.9 0.45 -0.4" scale="0.22 0.22 0.22"
+              geometry="primitive: sphere; radius:0.18"
+              material="color: #ffd0d0; emissive: #ff5050; emissiveIntensity:0.35"
+              animation__float="property: position; to:-0.9 0.8 -0.4; dir: alternate; dur: 2000; loop: true"></a-entity>
 
+    <!-- MARKER (pattern .pat) -->
+    <a-marker id="marker" type="pattern" url="marker.patt">
+      <!-- Glow e pulsazione -->
+      <a-entity id="markerGlow" visible="false" position="0 0 0"
+                animation__pulse="property: scale; dir: alternate; dur: 800; loop: true; to:1.1 1.1 1.1"></a-entity>
 
-<div id="protected-overlay" class="hidden">
-<form id="tokenForm">
-<label for="token">Inserisci codice invito</label>
-<input id="token" name="token" autocomplete="off" />
-<button type="submit">Entra</button>
-</form>
-<p class="hint">Oppure apri il link con il parametro <code>?token=TUO_TOKEN</code></p>
-</div>
+      <!-- video plane -->
+      <a-plane id="videoPlane" visible="false" position="0 0.02 0" rotation="-90 0 0"
+               width="0.8" height="0.45"
+               material="shader:flat; src:#my-video; transparent:true; side:double"></a-plane>
 
+      <!-- marker smoke -->
+      <a-entity id="markerSmoke" particle-system="preset: dust; color: #ff3b3b, #ff8a8a; particleCount: 90; size: 0.05; positionSpread: 0.45 0.45 0.45;"></a-entity>
+    </a-marker>
 
-<section id="content" class="hidden">
-<article class="video-card">
-<video id="demoVideo" controls playsinline>
-<source src="video-demo.webm" type="video/webm">
-Il tuo browser non supporta il tag video.
-</video>
-</article>
+    <a-entity camera></a-entity>
+  </a-scene>
 
-
-<aside class="invite">
-<h2>Scarica o mostra questo invito</h2>
-<div class="invite-art">
-<svg width="640" height="360" viewBox="0 0 640 360" xmlns="http://www.w3.org/2000/svg">
-<rect width="100%" height="100%" fill="#0b6e4f" rx="16" />
-<text x="40" y="70" font-family="Arial, Helvetica, sans-serif" font-size="28" fill="#fff">Sei invitato alla demo di Eduverse</text>
-<text x="40" y="110" font-size="18" fill="#fff">Data: __</text>
-<text x="40" y="140" font-size="16" fill="#fff">Luogo: Online</text>
-<image x="440" y="40" width="160" height="160"
-href="https://chart.googleapis.com/chart?chs=300x300&cht=qr&chl={LINK_SEGRETO}&choe=UTF-8" />
-<text x="440" y="220" font-size="12" fill="#fff">Scansiona per aprire la pagina</text>
-</svg>
-</div>
-<p>Puoi scaricare l'SVG o mostrarlo stampato: il QR punta alla pagina privata (sostituisci il placeholder con il link reale).</p>
-</aside>
-</section>
-
-
-<footer>
-<small>Generato automaticamente — sostituisci i placeholder con i tuoi file.</small>
-</footer>
-</main>
-
-
-<script src="access-check.js"></script>
+  <script src="script.js"></script>
 </body>
 </html>
