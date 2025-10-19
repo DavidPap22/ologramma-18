@@ -3,13 +3,13 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
-  <title>Ologramma AR — versione finale</title>
+  <title>Ologramma AR — versione ottimizzata</title>
 
   <!-- A-Frame + AR.js -->
   <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
   <script src="https://cdn.rawgit.com/AR-js-org/AR.js/3.3.2/aframe/build/aframe-ar.js"></script>
 
-  <!-- particle system component -->
+  <!-- Particle system -->
   <script src="https://cdn.jsdelivr.net/gh/IdeaSpaceVR/aframe-particle-system-component@v1.0.2/dist/aframe-particle-system-component.min.js"></script>
 
   <link rel="stylesheet" href="style.css">
@@ -40,31 +40,34 @@
   <audio id="bgMusic" src="musica.mp3" loop preload="auto"></audio>
   <video id="my-video" src="video-demo.webm" preload="auto" playsinline webkit-playsinline crossorigin="anonymous" style="display:none"></video>
 
-  <!-- A-FRAME / AR.SCENE -->
+  <!-- SCENA AR -->
   <a-scene embedded
            renderer="alpha: true; antialias: true;"
-           arjs="sourceType: webcam; debugUIEnabled: true; detectionMode: mono_and_matrix; matrixCodeType: 3x3;">
+           arjs="sourceType: webcam; debugUIEnabled: true; detectionMode: mono;">
+    
+    <!-- Camera -->
     <a-entity camera="fov: 60" position="0 0 0"></a-entity>
 
-    <!-- GLOBAL PARTICLES / SMOKE -->
-    <a-entity id="globalSmoke" particle-system="preset: dust; color: #ff2b2b, #ff7a7a; particleCount: 260; size: 0.05; positionSpread: 2 1.2 2;"></a-entity>
+    <!-- GLOBAL PARTICLES (fumo) -->
+    <a-entity id="globalSmoke" visible="false" particle-system="preset: dust; color: #ff2b2b, #ff7a7a; particleCount: 260; size: 0.05; positionSpread: 2 1.2 2;"></a-entity>
 
     <!-- OGGETTI FLOTTUANTI -->
-    <a-entity id="floating1" position="0.8 0.6 -0.6" scale="0.26 0.26 0.26"
+    <a-entity id="floating1" visible="false" position="0.8 0.6 -0.6" scale="0.26 0.26 0.26"
               geometry="primitive: box; width:0.28; height:0.28; depth:0.18"
               material="color: #ff9f9f; emissive: #ff5050; emissiveIntensity:0.45"
               animation__float="property: position; to:0.8 0.9 -0.6; dir: alternate; dur: 1800; loop: true"></a-entity>
 
-    <a-entity id="floating2" position="-0.9 0.45 -0.4" scale="0.22 0.22 0.22"
+    <a-entity id="floating2" visible="false" position="-0.9 0.45 -0.4" scale="0.22 0.22 0.22"
               geometry="primitive: sphere; radius:0.18"
               material="color: #ffd0d0; emissive: #ff5050; emissiveIntensity:0.35"
               animation__float="property: position; to:-0.9 0.8 -0.4; dir: alternate; dur: 2000; loop: true"></a-entity>
 
-    <!-- MARKER (pattern .pat) -->
+    <!-- MARKER -->
     <a-marker id="marker" type="pattern" url="marker.patt">
-      <!-- Glow e pulsazione -->
-      <a-entity id="markerGlow" visible="false" position="0 0 0"
-                animation__pulse="property: scale; dir: alternate; dur: 800; loop: true; to:1.1 1.1 1.1"></a-entity>
+      <!-- Glow/Pulsazione -->
+      <a-ring id="markerGlow" visible="false" rotation="-90 0 0" radius-inner="0.52" radius-outer="0.76"
+              material="shader:flat; color:#ff4444; opacity:0.32"
+              animation__pulse="property: scale; dir: alternate; dur: 800; loop: true; to:1.1 1.1 1.1"></a-ring>
 
       <!-- video plane -->
       <a-plane id="videoPlane" visible="false" position="0 0.02 0" rotation="-90 0 0"
@@ -72,7 +75,7 @@
                material="shader:flat; src:#my-video; transparent:true; side:double"></a-plane>
 
       <!-- marker smoke -->
-      <a-entity id="markerSmoke" particle-system="preset: dust; color: #ff3b3b, #ff8a8a; particleCount: 90; size: 0.05; positionSpread: 0.45 0.45 0.45;"></a-entity>
+      <a-entity id="markerSmoke" visible="false" particle-system="preset: dust; color: #ff3b3b, #ff8a8a; particleCount: 90; size: 0.05; positionSpread: 0.45 0.45 0.45;"></a-entity>
     </a-marker>
 
     <a-entity camera></a-entity>
