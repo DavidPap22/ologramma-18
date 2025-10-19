@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
-  <title>Ologramma AR — versione ottimizzata</title>
+  <title>Ologramma AR — Invito</title>
 
   <!-- A-Frame + AR.js -->
   <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
@@ -23,12 +23,11 @@
       <div id="subtitle">Preparazione ologramma — carico presentazione</div>
       <div class="dots"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>
       <div id="tapHint">Tocca lo schermo per sbloccare</div>
-      <div id="hintSmall">Dopo questo vedrai fumo e oggetti. Inquadra il marker e cliccaci per avviare il video.</div>
     </div>
   </div>
 
   <!-- DEBUG BADGE -->
-  <div id="debugBadge">Marker: —</div>
+  <div id="debugBadge">AR attivo</div>
 
   <!-- LOGHI FINE VIDEO -->
   <img id="logoReplay" src="replay.png" alt="Replay" />
@@ -44,7 +43,7 @@
   <a-scene embedded
            renderer="alpha: true; antialias: true;"
            arjs="sourceType: webcam; debugUIEnabled: true; detectionMode: mono;">
-    
+
     <!-- Camera -->
     <a-entity camera="fov: 60" position="0 0 0"></a-entity>
 
@@ -62,23 +61,18 @@
               material="color: #ffd0d0; emissive: #ff5050; emissiveIntensity:0.35"
               animation__float="property: position; to:-0.9 0.8 -0.4; dir: alternate; dur: 2000; loop: true"></a-entity>
 
-    <!-- MARKER -->
-    <a-marker id="marker" type="pattern" url="marker.patt">
-      <!-- Glow/Pulsazione -->
-      <a-ring id="markerGlow" visible="false" rotation="-90 0 0" radius-inner="0.52" radius-outer="0.76"
-              material="shader:flat; color:#ff4444; opacity:0.32"
-              animation__pulse="property: scale; dir: alternate; dur: 800; loop: true; to:1.1 1.1 1.1"></a-ring>
+    <!-- INVITO PNG cliccabile -->
+    <a-plane id="invitoPlane" src="invito.png" position="0 1 -1" rotation="0 0 0" width="1.2" height="0.7"
+             material="shader: flat; transparent:true" class="clickable">
+      <a-animation attribute="scale" from="1 1 1" to="1.05 1.05 1" direction="alternate" dur="800" repeat="indefinite"></a-animation>
+    </a-plane>
 
-      <!-- video plane -->
-      <a-plane id="videoPlane" visible="false" position="0 0.02 0" rotation="-90 0 0"
-               width="0.8" height="0.45"
-               material="shader:flat; src:#my-video; transparent:true; side:double"></a-plane>
+    <!-- VIDEO PLANE -->
+    <a-plane id="videoPlane" visible="false" position="0 1 -1" rotation="0 0 0"
+             width="1.2" height="0.7"
+             material="shader: flat; src:#my-video; transparent:true; side:double">
+    </a-plane>
 
-      <!-- marker smoke -->
-      <a-entity id="markerSmoke" visible="false" particle-system="preset: dust; color: #ff3b3b, #ff8a8a; particleCount: 90; size: 0.05; positionSpread: 0.45 0.45 0.45;"></a-entity>
-    </a-marker>
-
-    <a-entity camera></a-entity>
   </a-scene>
 
   <script src="script.js"></script>

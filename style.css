@@ -1,7 +1,8 @@
-/* base */
+/* BASE */
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-html, body { height:100%; width:100%; margin:0; padding:0; background:#000; font-family: Arial, sans-serif; }
+html, body { height:100%; width:100%; margin:0; padding:0; background:#000; font-family: Arial, sans-serif; overflow:hidden; }
 
+/* SCENA AR: canvas trasparente */
 a-scene, a-scene canvas, .a-canvas {
   background: transparent !important;
   transform: none !important;
@@ -10,31 +11,40 @@ a-scene, a-scene canvas, .a-canvas {
   object-fit: cover !important;
 }
 
-/* overlay iniziale rosso scuro */
+/* OVERLAY INIZIALE ROSSO SCURO */
 #overlay { position: fixed; inset:0; z-index: 9999; display:flex; align-items:center; justify-content:center;
   background: linear-gradient(180deg, rgba(40,0,0,0.95), rgba(8,0,0,0.9));
   color: #fff; }
 #card { text-align:center; padding:20px 26px; border-radius:10px; max-width:86vw; }
 #title { font-size:20px; font-weight:700; color:#ff9fa0; margin-bottom:6px; }
 #subtitle { font-size:14px; color:#ffdede; margin-bottom:12px; }
-#hintSmall { margin-top:8px; font-size:12px; color:#ffecec; opacity:0.92; }
+#tapHint { margin-top:8px; font-size:12px; color:#ffecec; opacity:0.92; }
 
-/* dots */
+/* DOTS ANIMATI */
 .dots { display:flex; gap:10px; justify-content:center; margin-bottom:10px; }
 .dot { width:16px; height:16px; border-radius:50%; background:#ff4d4d; opacity:.25; animation: blink 1.2s infinite; }
 .dot:nth-child(2){ animation-delay:.12s } .dot:nth-child(3){ animation-delay:.24s }
 @keyframes blink { 0%{opacity:.18; transform:translateY(0);} 50%{opacity:1; transform:translateY(-6px);} 100%{opacity:.18; transform:translateY(0);} }
 
-/* debug badge */
+/* DEBUG BADGE */
 #debugBadge { position: fixed; left: 12px; top: 12px; z-index: 10001;
   background: rgba(0,0,0,0.45); color:#fff; padding:6px 10px; border-radius:8px; font-weight:700; }
 
-/* logos */
-#logoReplay, #logoWhatsApp, #waLink { position: fixed; bottom:20px; width:64px; display:none; z-index:10000; }
+/* LOGHI FINE VIDEO */
+#logoReplay, #logoWhatsApp, #waLink { position: fixed; bottom:20px; width:64px; display:none; z-index:10000; cursor:pointer; }
 #logoReplay { left:18px; } #logoWhatsApp { right:18px; }
 
-/* small mobile adjustments */
+/* INVITO PNG CLICCABILE */
+.clickable { cursor:pointer; }
+a-plane#invitoPlane {
+  /* pulsazione già definita con a-animation nel HTML */
+  filter: drop-shadow(0 0 12px #ff5555);
+}
+
+/* MOBILE ADJUSTMENTS */
 @media (max-width: 600px) {
   #card { padding:14px 18px; }
   .dot { width:14px; height:14px; }
+  #logoReplay, #logoWhatsApp { width:48px; bottom:14px; }
+  a-plane#invitoPlane { width:0.9; height:0.55; }
 }
