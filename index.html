@@ -1,101 +1,79 @@
 <!doctype html>
 <html lang="it">
 <head>
-  <meta charset="utf-8"/>
-  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover"/>
-  <title>MARKER TEST 2 — NO ZOOM</title>
-
-  <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
-  <script src="https://cdn.rawgit.com/AR-js-org/AR.js/3.3.2/aframe/build/aframe-ar.js"></script>
-
-  <style>
-    html,body{
-      height:100%;
-      margin:0;
-      background:#000;
-      -webkit-text-size-adjust:100%;
-      -ms-text-size-adjust:100%;
-      touch-action: none;            /* disables pinch/scrolling that causes zoom */
-      overscroll-behavior: none;
-    }
-    /* force scene and canvas to full-screen, no transform/scale */
-    a-scene, a-scene canvas, .a-canvas {
-      width:100vw !important;
-      height:100vh !important;
-      transform:none !important;
-      background: transparent !important;
-      object-fit: cover !important;
-      -webkit-user-select: none;
-      user-select: none;
-      touch-action: none;
-    }
-
-    /* UI */
-    #info { position: fixed; left: 10px; top: 10px; z-index: 99999; color:#0f0; background: rgba(0,0,0,0.6); padding:6px 10px; border-radius:6px; font-family: monospace; }
-    #hint { position: fixed; right: 10px; top: 10px; z-index: 99999; color:#fff; background: rgba(0,0,0,0.6); padding:6px 10px; border-radius:6px; font-family: sans-serif; max-width:40vw; }
-    #logArea { position: fixed; left: 10px; bottom: 10px; z-index: 99999; color:#fff; background: rgba(0,0,0,0.5); padding:6px 10px; border-radius:6px; font-family: monospace; max-height:35vh; overflow:auto; width: 46vw; }
-  </style>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Invito - Video Demo</title>
+<link rel="stylesheet" href="styles.css" />
+<script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
+<script src="https://cdn.rawgit.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
 </head>
-<body>
-  <div id="info">Marker: —</div>
-  <div id="hint">Mostra il marker stampato o su 2° schermo (100% zoom). Luminosità max. Se NON vedi FOUND, invia console + foto del marker.</div>
-  <div id="logArea"></div>
+<body style="margin: 0; overflow: hidden;">
+<a-scene embedded arjs='sourceType: webcam;'>
 
-  <a-scene embedded arjs="sourceType: webcam; debugUIEnabled: true;">
-    <a-entity camera position="0 0 0"></a-entity>
 
-    <!-- test visuals immediately visible -->
-    <a-entity particle-system="preset: dust; color: #ff3333, #ff7777; particleCount: 120; size:0.04; positionSpread: 1.2 0.7 1.2;"></a-entity>
-    <a-box position="0 0.7 -1" rotation="0 30 0" color="#ff7070"></a-box>
+<!-- Marker aggiornato -->
+<a-marker type="pattern" url="marker.patt">
+<a-entity geometry="primitive: box; width: 1; height: 1; depth: 1" material="color: red" position="0 0.5 0"></a-entity>
+</a-marker>
 
-    <!-- marker -->
-    <a-marker id="m" type="pattern" url="qr-marker.pat">
-      <a-ring rotation="-90 0 0" radius-inner="0.35" radius-outer="0.6" material="shader:flat; color:#ff4444; opacity:0.35"></a-ring>
-      <a-box position="0 0.45 0" depth="0.12" width="0.36" height="0.3" material="color:#fff"></a-box>
-    </a-marker>
 
-    <a-entity camera></a-entity>
-  </a-scene>
+<a-entity camera></a-entity>
 
-  <script>
-    const info = document.getElementById('info');
-    const logArea = document.getElementById('logArea');
-    const marker = document.getElementById('m');
 
-    function logLine(s){ 
-      console.log(s);
-      const el = document.createElement('div'); el.textContent = s; logArea.appendChild(el); logArea.scrollTop = logArea.scrollHeight;
-    }
+</a-scene>
 
-    marker.addEventListener('markerFound', ()=> {
-      info.textContent = 'Marker: FOUND ✓';
-      info.style.color = '#0f0';
-      logLine('[TEST] markerFound');
-    });
-    marker.addEventListener('markerLost', ()=> {
-      info.textContent = 'Marker: LOST';
-      info.style.color = '#f66';
-      logLine('[TEST] markerLost');
-    });
 
-    // Quick diagnostics: video elements, canvas, DPR
-    setTimeout(()=>{
-      logLine('[DIAG] videos in DOM: ' + document.querySelectorAll('video').length);
-      logLine('[DIAG] canvas present: ' + !!document.querySelector('canvas'));
-      logLine('[DIAG] devicePixelRatio: ' + window.devicePixelRatio);
-      // print getUserMedia constraints / actual stream dimensions if possible
-      const vid = document.querySelector('video');
-      if(vid && vid.srcObject){
-        const s = vid.srcObject.getVideoTracks()[0].getSettings();
-        logLine('[DIAG] camera settings: ' + JSON.stringify(s));
-      } else {
-        logLine('[DIAG] camera stream not yet attached or video element different.');
-      }
-    }, 1400);
+<main id="app">
+<header>
+<h1>Invito - Video Demo</h1>
+<p>Video: <strong>video-demo.webm</strong></p>
+</header>
 
-    // Touch handler: show a quick toast when touched (to test if touch events are blocked)
-    document.body.addEventListener('touchstart', ()=> logLine('[INPUT] touchstart detected'), {passive:true});
-    document.body.addEventListener('click', ()=> logLine('[INPUT] click detected'));
-  </script>
+
+<div id="protected-overlay" class="hidden">
+<form id="tokenForm">
+<label for="token">Inserisci codice invito</label>
+<input id="token" name="token" autocomplete="off" />
+<button type="submit">Entra</button>
+</form>
+<p class="hint">Oppure apri il link con il parametro <code>?token=TUO_TOKEN</code></p>
+</div>
+
+
+<section id="content" class="hidden">
+<article class="video-card">
+<video id="demoVideo" controls playsinline>
+<source src="video-demo.webm" type="video/webm">
+Il tuo browser non supporta il tag video.
+</video>
+</article>
+
+
+<aside class="invite">
+<h2>Scarica o mostra questo invito</h2>
+<div class="invite-art">
+<svg width="640" height="360" viewBox="0 0 640 360" xmlns="http://www.w3.org/2000/svg">
+<rect width="100%" height="100%" fill="#0b6e4f" rx="16" />
+<text x="40" y="70" font-family="Arial, Helvetica, sans-serif" font-size="28" fill="#fff">Sei invitato alla demo di Eduverse</text>
+<text x="40" y="110" font-size="18" fill="#fff">Data: __</text>
+<text x="40" y="140" font-size="16" fill="#fff">Luogo: Online</text>
+<image x="440" y="40" width="160" height="160"
+href="https://chart.googleapis.com/chart?chs=300x300&cht=qr&chl={LINK_SEGRETO}&choe=UTF-8" />
+<text x="440" y="220" font-size="12" fill="#fff">Scansiona per aprire la pagina</text>
+</svg>
+</div>
+<p>Puoi scaricare l'SVG o mostrarlo stampato: il QR punta alla pagina privata (sostituisci il placeholder con il link reale).</p>
+</aside>
+</section>
+
+
+<footer>
+<small>Generato automaticamente — sostituisci i placeholder con i tuoi file.</small>
+</footer>
+</main>
+
+
+<script src="access-check.js"></script>
 </body>
 </html>
