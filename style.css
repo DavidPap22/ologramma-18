@@ -73,6 +73,7 @@ a-scene {
   cursor: pointer;
 }
 
-#videoTapOverlay {
-  display: flex;
+/* Small adaptivity for buttons on mobile */
+@media (max-width: 480px) {
+  .enterBtn { padding: 14px 26px; font-size: 1rem; }
 }
