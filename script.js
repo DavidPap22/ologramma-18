@@ -1,4 +1,4 @@
-// script.js - versione completa e coerente
+// script.js - versione corretta per evitare la "scomparsa" degli item
 
 const startBtn = document.getElementById('startBtn');
 const startOverlay = document.getElementById('startOverlay');
@@ -17,7 +17,7 @@ let bgSavedTime = 0;
 const wait = ms => new Promise(r => setTimeout(r, ms));
 
 startBtn.addEventListener('click', async () => {
-  try { await bgMusic.play(); } catch (e) { /* autoplay may be blocked until user gesture; it's fine */ }
+  try { await bgMusic.play(); } catch (e) {}
   startOverlay.style.display = 'none';
   try { await startCameraWithRetries(); } catch (e) { alert('Impossibile avviare la fotocamera.'); return; }
 
@@ -98,24 +98,55 @@ function forceSkyTextureUpdate(skyEl, d = 1400, i = 80) {
   }, i);
 }
 
-// DISTRIBUISCI ITEMS SU CERCHIO, CREANDO UN WRAPPER PER ROTAZIONE + FLOAT
+// DISTRIBUISCI ITEMS SU CERCHIO: ora gestisce correttamente se i wrapper esistono già
 function distributeItemsCircle(radius = 2.0, height = 2.2) {
   const scene = document.querySelector('a-scene');
   const count = itemIds.length;
   const angleStep = (2 * Math.PI) / count;
 
+  console.log('[distribute] start - items:', itemIds);
+
   itemIds.forEach((id, i) => {
     const img = document.getElementById(id);
-    if (!img) return;
+    if (!img) {
+      console.warn(`[distribute] elemento non trovato: ${id}`);
+      return;
+    }
+
+    // forziamo visible (se per qualche motivo era a false)
+    img.setAttribute('visible', true);
 
     const angle = i * angleStep + (Math.random() * 0.1 - 0.05);
     const x = (radius * Math.cos(angle));
     const z = (radius * Math.sin(angle));
     const y = height;
 
-    // crea wrapper
-    const wrap = document.createElement('a-entity');
-    wrap.setAttribute('id', `${id}-wrap`);
+    const wrapperId = `${id}-wrap`;
+    let wrap = document.getElementById(wrapperId);
+
+    if (wrap) {
+      // se il wrapper esiste già, aggiorna posizione/animazioni senza rimuovere l'img
+      console.log(`[distribute] wrapper esistente per ${id} — aggiorno posizione/animazioni`);
+      wrap.setAttribute('position', `${x.toFixed(3)} ${y.toFixed(3)} ${z.toFixed(3)}`);
+      const amp = 0.08 + Math.random() * 0.04;
+      const floatDur = 1800 + Math.random() * 1500;
+      wrap.setAttribute('animation__float',
+        `property: position; to: ${x.toFixed(3)} ${(y + amp).toFixed(3)} ${z.toFixed(3)}; dur:${Math.floor(floatDur)}; dir:alternate; loop:true; easing:easeInOutSine`
+      );
+      const rotDur = 4000 + Math.random() * 6000;
+      wrap.setAttribute('animation__rotate',
+        `property: rotation; to: 0 360 0; dur:${Math.floor(rotDur)}; easing:linear; loop:true`
+      );
+      // assicurati che l'immagine figlia sia visibile e abbia look-at
+      img.setAttribute('position', '0 0 0');
+      img.setAttribute('look-at', '#camera');
+      img.classList.add('clickable');
+      return;
+    }
+
+    // non esiste: crealo e incapsula l'immagine
+    wrap = document.createElement('a-entity');
+    wrap.setAttribute('id', wrapperId);
     wrap.setAttribute('position', `${x.toFixed(3)} ${y.toFixed(3)} ${z.toFixed(3)}`);
 
     // float (vertical oscillation)
@@ -125,29 +156,35 @@ function distributeItemsCircle(radius = 2.0, height = 2.2) {
       `property: position; to: ${x.toFixed(3)} ${(y + amp).toFixed(3)} ${z.toFixed(3)}; dur:${Math.floor(floatDur)}; dir:alternate; loop:true; easing:easeInOutSine`
     );
 
-    // rotation continua su Y (wrap ruota così l'immagine "gira su se stessa")
+    // rotation continua su Y
     const rotDur = 4000 + Math.random() * 6000;
     wrap.setAttribute('animation__rotate',
       `property: rotation; to: 0 360 0; dur:${Math.floor(rotDur)}; easing:linear; loop:true`
     );
 
-    // sposta l'immagine dentro il wrapper (posizione relativa)
-    if (img.parentNode) img.parentNode.removeChild(img);
-    img.setAttribute('position', `0 0 0`);
+    // Spostiamo l'immagine dentro il wrapper SOLO SE non è già figlia di quel wrapper
+    // (gestisce anche il caso in cui img si trovi già nella scena root)
+    try {
+      if (img.parentNode && img.parentNode.id !== wrapperId) {
+        img.parentNode.removeChild(img);
+      }
+    } catch (e) {
+      console.warn('[distribute] errore rimuovendo child: ', e);
+    }
+    img.setAttribute('position', '0 0 0');
     img.setAttribute('scale', '0.95 0.95 0.95');
-
-    // mantieni look-at sull'immagine figlia (in modo che "guardi" la camera)
     img.setAttribute('look-at', '#camera');
-
-    // assicurati sia cliccabile
+    img.setAttribute('visible', true);
     img.classList.add('clickable');
 
     wrap.appendChild(img);
     scene.appendChild(wrap);
+
+    console.log(`[distribute] creato wrapper ${wrapperId} per ${id} a pos ${x.toFixed(2)}, ${y.toFixed(2)}, ${z.toFixed(2)}`);
   });
 }
 
-// PARTICELLE, FUMO, LUCE
+// PARTICELLE, FUMO, LUCE (uguali)
 function createParticles(count = 32) {
   const root = document.getElementById('particles');
   while (root.firstChild) root.removeChild(root.firstChild);
@@ -194,7 +231,7 @@ function animateLight() {
   );
 }
 
-// INTERAZIONI (link, audio items, video behavior)
+// INTERAZIONI
 function setupInteractions() {
   const audioMap = {
     'Radio': 'radio.mp3',
@@ -210,24 +247,19 @@ function setupInteractions() {
 
   preserveVideoAspect();
 
-  // QR click -> nascondi QR, mostra video e avvia (solo dopo click)
   qr.addEventListener('click', async () => {
     qr.setAttribute('visible', false);
     demoVideo.setAttribute('visible', true);
     try {
       bgSavedTime = bgMusic.currentTime || 0;
       bgMusic.pause();
-      // play video
       await holoVideo.play();
-      // disabilita pause dell'utente durante la riproduzione
       protectVideoFromPause();
     } catch (e) {
-      // se il play fallisce per politica browser (autoplay), mostra overlay per tocco
       videoTapOverlay.style.display = 'flex';
     }
   });
 
-  // overlay per avviare il video su browser che bloccano play automatico
   tapToPlay && tapToPlay.addEventListener('click', async () => {
     videoTapOverlay.style.display = 'none';
     try {
@@ -240,20 +272,16 @@ function setupInteractions() {
     }
   });
 
-  // quando il video finisce
   holoVideo.addEventListener('ended', () => {
     demoVideo.setAttribute('visible', false);
     replayLogo.setAttribute('visible', true);
     whatsappLogo.setAttribute('visible', true);
     replayLogo.classList.add('clickable');
     whatsappLogo.classList.add('clickable');
-    // riattiva musica di sottofondo da dove era rimasta
     try { bgMusic.currentTime = bgSavedTime || 0; bgMusic.play(); } catch (e) {}
-    // rimuovo eventuale listener che forzava play
     removeProtectVideoFromPause();
   });
 
-  // replay logo click -> riavvia il video
   replayLogo.addEventListener('click', async () => {
     if (!replayLogo.getAttribute('visible')) return;
     replayLogo.setAttribute('visible', false);
@@ -272,20 +300,20 @@ function setupInteractions() {
     }
   });
 
-  // whatsapp logo -> apri link (sostituisci numero reale)
   whatsappLogo.addEventListener('click', () => {
     if (!whatsappLogo.getAttribute('visible')) return;
     window.open('https://wa.me/1234567890', '_blank');
   });
 
-  // mappa delle azioni clic sugli item (nota: gli item ora sono figli dei wrapper)
+  // aggiungi listener di click sugli elementi (sono riferimenti agli <a-image> originali)
   itemIds.forEach(id => {
-    // il click listener va aggiunto sull'elemento immagine (non sul wrapper)
     const img = document.getElementById(id);
-    if (!img) return;
+    if (!img) {
+      console.warn(`[setupInteractions] elemento non trovato: ${id}`);
+      return;
+    }
     img.addEventListener('click', () => {
       if (audioMap[id]) {
-        // riproduci mp3: salva stato musica bg, metti in pausa bg, riprendi a fine traccia
         try { bgSavedTime = bgMusic.currentTime; bgMusic.pause(); } catch (e) {}
         const a = new Audio(audioMap[id]);
         a.play().catch(() => {});
@@ -297,13 +325,11 @@ function setupInteractions() {
       if (id === 'Tromba') { window.open('https://youtu.be/AMK10N6wwHM', '_blank'); return; }
       if (id === 'Ballerino') { window.open('https://youtu.be/JS_BY3LRBqw', '_blank'); return; }
       if (linkMap[id]) { window.open(linkMap[id], '_blank'); return; }
-      // fallback
       window.open('https://instagram.com', '_blank');
     });
   });
 }
 
-// Mantieni l'aspect ratio del video nell'a-scene
 function preserveVideoAspect() {
   const src = holoVideo.querySelector('source') ? holoVideo.querySelector('source').src : holoVideo.src;
   if (!src) return;
@@ -318,46 +344,30 @@ function preserveVideoAspect() {
       const aspect = w / h;
       const baseH = 1.0;
       const sx = baseH * aspect, sy = baseH;
-      // imposta la scala del video display (a-video)
       demoVideo.setAttribute('scale', `${sx} ${sy} 1`);
     }
   });
   probe.load();
 }
 
-/* Protezione contro la pausa del video:
-   - Quando video è in riproduzione lo manteniamo in play se l'utente cerca di metterlo in pausa.
-   - Quando il video è terminato rimuoviamo la protezione.
-*/
+/* Protezione pausa video */
 let _pauseGuard = null;
 function protectVideoFromPause() {
   removeProtectVideoFromPause();
   _pauseGuard = (e) => {
-    // se il video è in pausa ma non è ended => proviamo a riavviare
     if (holoVideo.paused && !holoVideo.ended) {
       holoVideo.play().catch(() => {});
     }
   };
   holoVideo.addEventListener('pause', _pauseGuard);
-  // disabilita controlli di default (non mostrare) e impedisci click sul video per interrompere
   holoVideo.controls = false;
-  demoVideo.setAttribute('class', 'no-pointer'); // stilare in css se vuoi
 }
 function removeProtectVideoFromPause() {
   if (_pauseGuard) {
     holoVideo.removeEventListener('pause', _pauseGuard);
     _pauseGuard = null;
   }
-  // ripristina eventuali proprietà
   holoVideo.controls = false;
-  demoVideo.removeAttribute('class');
 }
 
-// --- utility / small improvements ---
-// Evita che con il click lungo/apri menu del video si possano fare azioni
 holoVideo.addEventListener('contextmenu', (e) => { e.preventDefault(); });
-
-// Se l'utente prova a mettere in pausa via codice esterno, lo riavviamo
-holoVideo.addEventListener('playing', () => { /* ok */ });
-
-// FINE script.js
