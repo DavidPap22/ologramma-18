@@ -1,4 +1,4 @@
-// ---------- script.js completo (iOS fullscreen flow + fallback) ----------
+// ---------- script.js aggiornato: iOS detection + mostra loghi invece del video ----------
 
 // ---------- Variabili DOM ----------
 const startBtn = document.getElementById('startBtn');
@@ -17,10 +17,17 @@ const itemIds = ['DonBosco','Radio','EtnaEnsemble','Tromba','Catania','Eduverse'
 let bgSavedTime = 0;
 const wait = ms => new Promise(r => setTimeout(r, ms));
 
-// assicurati volume del video alto (se browser permette)
-try { holoVideo.volume = 1.0; } catch(e) { /* ignore */ }
+// Assicurati che il video abbia volume alto (massimo)
+try { holoVideo.volume = 1.0; } catch (e) { /* silent */ }
 
-// ----------------- COMPONENTE A-FRAME: face-camera (Y-only) -----------------
+// ---------- RILEVAMENTO iOS (incl. iPadOS moderno) ----------
+const isIOS = (() => {
+  const ua = navigator.userAgent || navigator.vendor || window.opera;
+  // iOS detection covering iPhone/iPod/iPad and iPadOS (MacIntel + touch)
+  return (/iPad|iPhone|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1));
+})();
+
+// ----------------- COMPONENTE A-FRAME: face-camera -----------------
 AFRAME.registerComponent('face-camera', {
   schema: { mode: { type: 'string', default: 'y' }, flip: { type: 'boolean', default: false }, lockX: { type: 'boolean', default: true }, lockZ: { type: 'boolean', default: true } },
   init: function () {
@@ -34,7 +41,7 @@ AFRAME.registerComponent('face-camera', {
     try {
       if (Array.isArray(mesh.material)) mesh.material.forEach(m => { m.side = THREE.DoubleSide; m.needsUpdate = true; });
       else if (mesh.material) { mesh.material.side = THREE.DoubleSide; mesh.material.needsUpdate = true; }
-    } catch (e) { /* ignore */ }
+    } catch (e) { }
   },
   applyFlipOnce: function() {
     const sAttr = this.el.getAttribute('scale') || '1 1 1';
@@ -63,9 +70,9 @@ AFRAME.registerComponent('face-camera', {
   })()
 });
 
-// ----------------- Funzioni principali dell'esperienza -----------------
+// ----------------- Funzioni principali -----------------
 
-const playingAudios = {}; // traccia audio in riproduzione
+const playingAudios = {}; // traccia audio in riproduzione (per evitare ripetizioni)
 
 startBtn.addEventListener('click', async () => {
   try { await bgMusic.play(); } catch (e) { /* autoplay blocked */ }
@@ -82,10 +89,9 @@ startBtn.addEventListener('click', async () => {
   createParticles(36); createSmoke(25); animateLight();
   setupInteractions();
 
-  // Applica face-camera (Y-only) con flip a TUTTI gli item
+  // Applica face-camera (Y-only) con flip a tutti gli item
   itemIds.forEach(id => {
-    const el = document.getElementById(id);
-    if (!el) return;
+    const el = document.getElementById(id); if (!el) return;
     el.setAttribute('face-camera', 'mode: y; flip: true; lockX: true; lockZ: true');
   });
 });
@@ -108,294 +114,145 @@ async function startCameraWithRetries() {
   forceSkyTextureUpdate(document.getElementById('cameraSky'), 1400, 80);
 }
 
-function forceSkyTextureUpdate(skyEl, d = 1400, i = 80) {
-  const start = Date.now(); const tid = setInterval(() => {
-    try { const mesh = skyEl.getObject3D('mesh'); if (mesh && mesh.material && mesh.material.map) { mesh.material.map.needsUpdate = true; mesh.material.needsUpdate = true; } } catch (e) { }
-    if (Date.now() - start > d) clearInterval(tid);
-  }, i);
+function forceSkyTextureUpdate(skyEl, d=1400, i=80) {
+  const start = Date.now(); const tid = setInterval(()=>{ try{ const mesh = skyEl.getObject3D('mesh'); if(mesh && mesh.material && mesh.material.map){ mesh.material.map.needsUpdate=true; mesh.material.needsUpdate=true; } }catch(e){} if(Date.now()-start>d) clearInterval(tid); }, i);
 }
 
-// ---------- ITEMS SU CERCHIO, ANIMAZIONI ----------
-function distributeItemsCircle(radius = 2.0, height = 2.2) {
+// ---------- ITEMS SU CERCHIO ----------
+function distributeItemsCircle(radius=2.0, height=2.2){
   const count = itemIds.length;
-  const angleStep = (2 * Math.PI) / count;
-  itemIds.forEach((id, i) => {
-    const el = document.getElementById(id); if (!el) return;
-    const angle = i * angleStep + (Math.random() * 0.1 - 0.05);
-    const x = radius * Math.cos(angle), z = radius * Math.sin(angle), y = height;
-    el.setAttribute('position', `${x.toFixed(3)} ${y.toFixed(3)} ${z.toFixed(3)}`);
-    el.setAttribute('scale', '0.95 0.95 0.95');
-    el.classList.add('clickable');
-    const amp = 0.08 + Math.random() * 0.04, dur = 800 + Math.random() * 600; // velocità maggiore
-    el.setAttribute('animation__float', `property: position; to: ${x.toFixed(3)} ${(y + amp).toFixed(3)} ${z.toFixed(3)}; dur:${dur}; dir:alternate; loop:true; easing:easeInOutSine`);
+  const angleStep = (2*Math.PI)/count;
+  itemIds.forEach((id,i)=>{
+    const el=document.getElementById(id); if(!el) return;
+    const angle=i*angleStep + (Math.random()*0.1-0.05);
+    const x=radius*Math.cos(angle), z=radius*Math.sin(angle), y=height;
+    el.setAttribute('position',`${x.toFixed(3)} ${y.toFixed(3)} ${z.toFixed(3)}`);
+    el.setAttribute('scale','0.95 0.95 0.95'); el.classList.add('clickable');
+    const amp=0.08+Math.random()*0.04, dur=800+Math.random()*600; // velocità aumentata
+    el.setAttribute('animation__float',`property: position; to: ${x.toFixed(3)} ${(y+amp).toFixed(3)} ${z.toFixed(3)}; dur:${dur}; dir:alternate; loop:true; easing:easeInOutSine`);
   });
 }
 
-// ---------- PARTICLES, FUMO, LUCE ----------
-function createParticles(count = 32) {
-  const root = document.getElementById('particles');
-  while (root.firstChild) root.removeChild(root.firstChild);
-  for (let i = 0; i < count; i++) {
-    const s = document.createElement('a-sphere');
-    const px = (Math.random() * 2 - 1) * 3;
-    const py = Math.random() * 2 + 0.6;
-    const pz = (Math.random() * 2 - 1) * 3;
-    s.setAttribute('position', `${px.toFixed(3)} ${py.toFixed(3)} ${pz.toFixed(3)}`);
-    s.setAttribute('radius', (0.03 + Math.random() * 0.04).toFixed(3));
-    s.setAttribute('color', '#ff2b2b');
-    const tx = (px + (Math.random() * 0.6 - 0.3)).toFixed(3);
-    const ty = (py + (Math.random() * 0.6 - 0.3)).toFixed(3);
-    const tz = (pz + (Math.random() * 0.6 - 0.3)).toFixed(3);
-    const dur = 800 + Math.random() * 1000; // velocità maggiore
-    s.setAttribute('animation__float', `property: position; to: ${tx} ${ty} ${tz}; dur:${Math.round(dur)}; dir:alternate; loop:true; easing:easeInOutSine`);
+// ---------- PARTICLES / FUMO ----------
+function createParticles(count=32){
+  const root = document.getElementById('particles'); while(root.firstChild) root.removeChild(root.firstChild);
+  for(let i=0;i<count;i++){
+    const s=document.createElement('a-sphere');
+    const px=(Math.random()*2-1)*3, py=Math.random()*2+0.6, pz=(Math.random()*2-1)*3;
+    s.setAttribute('position',`${px.toFixed(3)} ${py.toFixed(3)} ${pz.toFixed(3)}`);
+    s.setAttribute('radius',(0.03+Math.random()*0.04).toFixed(3)); s.setAttribute('color','#ff2b2b');
+    const tx=(px+(Math.random()*0.6-0.3)).toFixed(3), ty=(py+(Math.random()*0.6-0.3)).toFixed(3), tz=(pz+(Math.random()*0.6-0.3)).toFixed(3);
+    const dur=800+Math.random()*1000; // velocità maggiore
+    s.setAttribute('animation__float',`property: position; to: ${tx} ${ty} ${tz}; dur:${Math.round(dur)}; dir:alternate; loop:true; easing:easeInOutSine`);
     root.appendChild(s);
   }
 }
 
-function createSmoke(count = 20) {
+function createSmoke(count=20){
   const root = document.getElementById('particles');
-  for (let i = 0; i < count; i++) {
-    const e = document.createElement('a-cylinder');
-    const px = (Math.random() * 2 - 1) * 3;
-    const py = 0.5 + Math.random() * 2;
-    const pz = (Math.random() * 2 - 1) * 3;
-    e.setAttribute('position', `${px.toFixed(3)} ${py.toFixed(3)} ${pz.toFixed(3)}`);
-    e.setAttribute('radius', 0.03);
-    e.setAttribute('height', 0.7 + Math.random() * 0.5);
-    e.setAttribute('color', '#ff1111');
-    e.setAttribute('opacity', 0.45);
-    const ty = (py + 0.6).toFixed(3);
-    const dur = 900 + Math.random() * 900; // più veloce
-    e.setAttribute('animation__rise', `property: position; to: ${px.toFixed(3)} ${ty} ${pz.toFixed(3)}; dur:${Math.round(dur)}; dir:alternate; loop:true; easing:easeInOutSine`);
+  for(let i=0;i<count;i++){
+    const e=document.createElement('a-cylinder');
+    const px=(Math.random()*2-1)*3, py=0.5+Math.random()*2, pz=(Math.random()*2-1)*3;
+    e.setAttribute('position',`${px.toFixed(3)} ${py.toFixed(3)} ${pz.toFixed(3)}`);
+    e.setAttribute('radius',0.03); e.setAttribute('height',0.7+Math.random()*0.5); e.setAttribute('color','#ff1111'); e.setAttribute('opacity',0.45);
+    const ty=(py+0.6).toFixed(3), dur=900+Math.random()*900; // più veloce
+    e.setAttribute('animation__rise',`property: position; to: ${px.toFixed(3)} ${ty} ${pz.toFixed(3)}; dur:${Math.round(dur)}; dir:alternate; loop:true; easing:easeInOutSine`);
     root.appendChild(e);
   }
 }
 
-function animateLight() {
-  const light = document.getElementById('pulseLight');
-  light.setAttribute('animation', 'property: intensity; to:1.1; dur:1200; dir:alternate; loop:true; easing:easeInOutSine');
-}
+function animateLight(){ const light=document.getElementById('pulseLight'); light.setAttribute('animation','property:intensity; to:1.1; dur:1200; dir:alternate; loop:true; easing:easeInOutSine'); }
 
-// ---------- INTERAZIONI (iOS fullscreen + fallback) ----------
-function setupInteractions() {
-  const audioMap = { 'Fantacalcio': 'fantacalcio.mp3', 'Dj': 'dj.mp3' };
+// ---------- INTERAZIONI ----------
+function setupInteractions(){
+  const audioMap = { 'Fantacalcio':'fantacalcio.mp3', 'Dj':'dj.mp3' };
   const linkMap = {
-    'DonBosco': 'https://www.instagram.com/giovani_animatori_trecastagni/',
-    'EtnaEnsemble': 'https://www.instagram.com/etnaensemble/',
-    'Catania': 'https://www.instagram.com/officialcataniafc/',
-    'Eduverse': 'https://www.instagram.com/eduverse___/',
-    'Radio': 'https://open.spotify.com/intl-it/track/3nhAgjyrfUUCNDMZHx6LCa?si=043e9baf88924a82',
-    'Tromba': 'https://youtu.be/AMK10N6wwHM',
-    'Ballerino': 'https://youtu.be/JS_BY3LRBqw'
+    'DonBosco':'https://www.instagram.com/giovani_animatori_trecastagni/',
+    'EtnaEnsemble':'https://www.instagram.com/etnaensemble/',
+    'Catania':'https://www.instagram.com/officialcataniafc/',
+    'Eduverse':'https://www.instagram.com/eduverse___/',
+    'Radio':'https://open.spotify.com/intl-it/track/3nhAgjyrfUUCNDMZHx6LCa?si=043e9baf88924a82',
+    'Tromba':'https://youtu.be/AMK10N6wwHM',
+    'Ballerino':'https://youtu.be/JS_BY3LRBqw'
   };
 
   preserveVideoAspect();
 
-  // rilevazione iOS semplice
-  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
-  const videoSource = (holoVideo.querySelector('source') && holoVideo.querySelector('source').src) || holoVideo.src;
-
-  // Creiamo dinamicamente un overlay "Ho finito" per il fallback (apertura nuova scheda)
-  let doneOverlay = document.getElementById('doneOverlay');
-  if (!doneOverlay) {
-    doneOverlay = document.createElement('div');
-    doneOverlay.id = 'doneOverlay';
-    doneOverlay.style.cssText = 'display:none;position:fixed;inset:0;align-items:center;justify-content:center;z-index:100000;pointer-events:auto;';
-    const inner = document.createElement('div');
-    inner.style.cssText = 'background:rgba(0,0,0,0.75);padding:18px;border-radius:12px;color:#fff;text-align:center;max-width:90%;';
-    inner.innerHTML = `<p style="margin:0 0 12px">Se hai guardato il video in Safari, tocca qui per tornare alla scena ed attivare i loghi.</p>`;
-    const btn = document.createElement('button');
-    btn.id = 'doneBtn';
-    btn.textContent = 'Ho finito — Torna alla scena';
-    btn.style.cssText = 'padding:12px 18px;border-radius:8px;border:none;background:#1db954;color:#fff;font-weight:700;cursor:pointer;';
-    inner.appendChild(btn);
-    doneOverlay.appendChild(inner);
-    document.body.appendChild(doneOverlay);
-
-    btn.addEventListener('click', () => {
-      try {
-        replayLogo.setAttribute('visible', true);
-        whatsappLogo.setAttribute('visible', true);
-        replayLogo.classList.add('clickable');
-        whatsappLogo.classList.add('clickable');
-      } catch (e) {}
-      doneOverlay.style.display = 'none';
-      try { bgMusic.play(); } catch (e) {}
-    });
-  }
-
-  // Handler click QR: comportamento differenziato iOS / altri
-  qr.addEventListener('click', async () => {
-    // manteniamo la scena AR visibile e mostriamo l'elemento video
-    qr.setAttribute('visible', false);
-    demoVideo.setAttribute('visible', true);
-
-    // iOS: proviamo a lanciare playback + webkitEnterFullScreen (all'interno del gesto)
+  // QR click: comportamento diverso per iOS vs altri
+  qr.addEventListener('click', async ()=>{
     if (isIOS) {
-      const canWebkitFS = typeof holoVideo.webkitEnterFullScreen === 'function';
-      try {
-        try { holoVideo.volume = 1.0; } catch (e) {}
-        await holoVideo.play();
-
-        if (canWebkitFS) {
-          const onEndFS = function () {
-            try {
-              replayLogo.setAttribute('visible', true);
-              whatsappLogo.setAttribute('visible', true);
-              replayLogo.classList.add('clickable');
-              whatsappLogo.classList.add('clickable');
-            } catch (e) {}
-            try { bgMusic.currentTime = bgSavedTime || 0; bgMusic.play(); } catch (e) {}
-            holoVideo.removeEventListener('webkitendfullscreen', onEndFS);
-          };
-          holoVideo.addEventListener('webkitendfullscreen', onEndFS);
-
-          try { holoVideo.webkitEnterFullScreen(); } catch (e) {
-            if (videoSource) window.open(videoSource, '_blank');
-            doneOverlay.style.display = 'flex';
-          }
-          try { bgSavedTime = bgMusic.currentTime; bgMusic.pause(); } catch (e) {}
-          return;
-        } else {
-          if (holoVideo.requestFullscreen) {
-            try {
-              await holoVideo.requestFullscreen();
-              try { bgSavedTime = bgMusic.currentTime; bgMusic.pause(); } catch (e) {}
-              const onFsChange = () => {
-                if (!document.fullscreenElement) {
-                  try {
-                    replayLogo.setAttribute('visible', true);
-                    whatsappLogo.setAttribute('visible', true);
-                    replayLogo.classList.add('clickable');
-                    whatsappLogo.classList.add('clickable');
-                  } catch (e) {}
-                  try { bgMusic.currentTime = bgSavedTime || 0; bgMusic.play(); } catch (e) {}
-                  document.removeEventListener('fullscreenchange', onFsChange);
-                }
-              };
-              document.addEventListener('fullscreenchange', onFsChange);
-              return;
-            } catch (e) {
-              if (videoSource) window.open(videoSource, '_blank');
-              doneOverlay.style.display = 'flex';
-              return;
-            }
-          } else {
-            if (videoSource) window.open(videoSource, '_blank');
-            doneOverlay.style.display = 'flex';
-            return;
-          }
-        }
-      } catch (err) {
-        if (videoSource) window.open(videoSource, '_blank');
-        doneOverlay.style.display = 'flex';
-        return;
-      }
-    } // end isIOS
-
-    // Non-iOS: comportamento precedente (play inline / fallback overlay)
-    try {
-      holoVideo.volume = 1.0;
-      await holoVideo.play();
-      bgSavedTime = bgMusic.currentTime;
-      bgMusic.pause();
-    } catch (e) {
-      videoTapOverlay.style.display = 'flex';
-    }
-  });
-
-  // Bottone overlay "Avvia Video" (fallback)
-  tapToPlay && tapToPlay.addEventListener('click', async () => {
-    videoTapOverlay.style.display = 'none';
-    try {
-      try { holoVideo.volume = 1.0; } catch (e) {}
-      await holoVideo.play();
-      if (isIOS && typeof holoVideo.webkitEnterFullScreen === 'function') {
-        const onEndFS = function () {
-          try {
-            replayLogo.setAttribute('visible', true); whatsappLogo.setAttribute('visible', true);
-            replayLogo.classList.add('clickable'); whatsappLogo.classList.add('clickable');
-          } catch (e) {}
-          try { bgMusic.currentTime = bgSavedTime || 0; bgMusic.play(); } catch (e) {}
-          holoVideo.removeEventListener('webkitendfullscreen', onEndFS);
-        };
-        holoVideo.addEventListener('webkitendfullscreen', onEndFS);
-        try { holoVideo.webkitEnterFullScreen(); } catch (e) {}
-      }
-      try { bgSavedTime = bgMusic.currentTime; bgMusic.pause(); } catch (e) {}
-    } catch (e) {
-      if (videoSource) window.open(videoSource, '_blank');
-      doneOverlay.style.display = 'flex';
-    }
-  });
-
-  // video ended inline
-  holoVideo.addEventListener('ended', () => {
-    demoVideo.setAttribute('visible', false);
-    replayLogo.setAttribute('visible', true);
-    whatsappLogo.setAttribute('visible', true);
-    replayLogo.classList.add('clickable'); whatsappLogo.classList.add('clickable');
-    try { bgMusic.currentTime = bgSavedTime || 0; bgMusic.play(); } catch (e) {}
-  });
-
-  // replay logo
-  replayLogo.addEventListener('click', async () => {
-    if (!replayLogo.getAttribute('visible')) return;
-    replayLogo.setAttribute('visible', false); whatsappLogo.setAttribute('visible', false);
-    replayLogo.classList.remove('clickable'); whatsappLogo.classList.remove('clickable');
-    demoVideo.setAttribute('visible', true);
-
-    if (isIOS) {
-      videoTapOverlay.style.display = 'flex';
+      // iOS non mostra il video: mostra direttamente i loghi (non fermare la musica)
+      qr.setAttribute('visible', false);
+      demoVideo.setAttribute('visible', false);
+      replayLogo.setAttribute('visible', true);
+      whatsappLogo.setAttribute('visible', true);
+      replayLogo.classList.add('clickable'); whatsappLogo.classList.add('clickable');
+      // non toccare bgMusic su iOS (lasciare la musica in sottofondo)
       return;
     }
 
-    try {
-      holoVideo.volume = 1.0;
-      await holoVideo.play();
-      bgSavedTime = bgMusic.currentTime;
-      bgMusic.pause();
-    } catch (e) {
-      videoTapOverlay.style.display = 'flex';
+    // non-iOS: comportamento usuale (prova a riprodurre il video)
+    qr.setAttribute('visible', false); demoVideo.setAttribute('visible', true);
+    try { holoVideo.volume = 1.0; await holoVideo.play(); bgSavedTime = bgMusic.currentTime; bgMusic.pause(); } catch (e) { videoTapOverlay.style.display = 'flex'; }
+  });
+
+  tapToPlay && tapToPlay.addEventListener('click', async ()=>{
+    videoTapOverlay.style.display = 'none';
+    try { holoVideo.volume = 1.0; await holoVideo.play(); bgSavedTime = bgMusic.currentTime; bgMusic.pause(); } catch (e) { alert('Impossibile avviare il video'); }
+  });
+
+  holoVideo.addEventListener('ended', ()=>{
+    demoVideo.setAttribute('visible', false);
+    replayLogo.setAttribute('visible', true); whatsappLogo.setAttribute('visible', true);
+    replayLogo.classList.add('clickable'); whatsappLogo.classList.add('clickable');
+    try{ bgMusic.currentTime = bgSavedTime || 0; bgMusic.play(); }catch(e){}
+  });
+
+  replayLogo.addEventListener('click', async ()=>{
+    if (!replayLogo.getAttribute('visible')) return;
+    // On iOS replay logo should probably replay the demo video — but since iOS couldn't autoplay,
+    // we'll try to open the video in a new tab as fallback (optional). For now, attempt to play normally.
+    replayLogo.setAttribute('visible', false); whatsappLogo.setAttribute('visible', false);
+    replayLogo.classList.remove('clickable'); whatsappLogo.classList.remove('clickable');
+    demoVideo.setAttribute('visible', true);
+    try { holoVideo.volume = 1.0; await holoVideo.play(); bgSavedTime = bgMusic.currentTime; bgMusic.pause(); } catch (e) {
+      // se fallisce (es. iOS), mostra di nuovo i loghi così l'utente può comunque usare WhatsApp
+      demoVideo.setAttribute('visible', false);
+      replayLogo.setAttribute('visible', true); whatsappLogo.setAttribute('visible', true);
+      replayLogo.classList.add('clickable'); whatsappLogo.classList.add('clickable');
     }
   });
 
-  // WhatsApp: apri il canale (non interrompe la bgMusic)
-  whatsappLogo.addEventListener('click', () => {
-    if (!whatsappLogo.getAttribute('visible')) return;
-    window.open('https://whatsapp.com/channel/0029VbCDIZCJUM2SokRjrw2W', '_blank');
-  });
+  // AGGIORNATO: link al canale WhatsApp fornito
+  whatsappLogo.addEventListener('click', ()=>{ window.open('https://whatsapp.com/channel/0029VbCDIZCJUM2SokRjrw2W','_blank'); });
 
-  // items click (link/audio)
-  itemIds.forEach(id => {
-    const el = document.getElementById(id); if (!el) return;
-    el.addEventListener('click', () => {
+  itemIds.forEach(id=>{
+    const el=document.getElementById(id); if(!el) return;
+    el.addEventListener('click',()=>{
+      // 1) linkMap prima (non stoppare bgMusic)
       if (linkMap[id]) { window.open(linkMap[id], '_blank'); return; }
+      // 2) audio locale: play una sola volta per item
       if (audioMap[id]) {
-        if (playingAudios[id]) return;
-        try { bgSavedTime = bgMusic.currentTime; bgMusic.pause(); } catch (e) {}
-        const a = new Audio(audioMap[id]);
-        playingAudios[id] = a;
+        if (playingAudios[id]) return; // già in riproduzione
+        try { bgSavedTime = bgMusic.currentTime; bgMusic.pause(); } catch (e) { }
+        const a = new Audio(audioMap[id]); playingAudios[id] = a;
         const p = a.play();
-        if (p && p.then) p.catch(() => { playingAudios[id] = null; try { bgMusic.play(); } catch (e) {} });
-        a.addEventListener('ended', () => {
-          playingAudios[id] = null;
-          try { bgMusic.currentTime = bgSavedTime || 0; bgMusic.play(); } catch (e) {}
-        });
+        if (p && p.then) p.catch(()=>{ playingAudios[id]=null; try{ bgMusic.play(); }catch(e){} });
+        a.addEventListener('ended', ()=>{ playingAudios[id] = null; try{ bgMusic.currentTime = bgSavedTime || 0; bgMusic.play(); }catch(e){} });
         return;
       }
-      window.open('https://instagram.com','_blank');
+      // fallback
+      window.open('https://instagram.com', '_blank');
     });
   });
-
-} // end setupInteractions
+}
 
 // Mantieni l'aspect ratio del video olografico
-function preserveVideoAspect() {
+function preserveVideoAspect(){
   const src = holoVideo.querySelector('source') ? holoVideo.querySelector('source').src : holoVideo.src;
   if (!src) return;
   const probe = document.createElement('video'); probe.preload = 'metadata'; probe.src = src; probe.muted = true; probe.playsInline = true;
-  probe.addEventListener('loadedmetadata', () => {
+  probe.addEventListener('loadedmetadata', ()=>{
     const w = probe.videoWidth, h = probe.videoHeight;
     if (w && h) {
       const aspect = w / h, baseH = 1.0; const sx = baseH * aspect, sy = baseH;
@@ -405,8 +262,4 @@ function preserveVideoAspect() {
   probe.load();
 }
 
-// Cleanup on unload
-window.addEventListener('beforeunload', () => {
-  try { bgMusic.pause(); } catch (e) {}
-  try { holoVideo.pause(); } catch (e) {}
-});
+window.addEventListener('beforeunload', ()=>{ try{ bgMusic.pause(); }catch(e){} try{ holoVideo.pause(); }catch(e){} });
