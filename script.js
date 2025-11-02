@@ -1,4 +1,4 @@
-// ---------- script.js aggiornato: iOS detection + mostra loghi invece del video ----------
+// ---------- script.js corretto: rimosso flip globale, flipMap per item ----------
 
 // ---------- Variabili DOM ----------
 const startBtn = document.getElementById('startBtn');
@@ -18,12 +18,26 @@ let bgSavedTime = 0;
 const wait = ms => new Promise(r => setTimeout(r, ms));
 
 // Assicurati che il video abbia volume alto (massimo)
-try { holoVideo.volume = 1.0; } catch (e) { /* silent */ }
+try{ holoVideo.volume = 1.0; }catch(e){ /* silent */ }
+
+// ---------- Configurazione flip per singolo item ----------
+// Di default tutti false (non specchiati). Se un'immagine è disegnata "al contrario",
+// imposta flipMap['NomeItem'] = true per correggerla.
+const flipMap = {
+  'DonBosco': false,
+  'Radio': false,
+  'EtnaEnsemble': false,
+  'Tromba': false,
+  'Catania': false,
+  'Eduverse': false,
+  'Fantacalcio': false,
+  'Dj': false,
+  'Ballerino': false
+};
 
 // ---------- RILEVAMENTO iOS (incl. iPadOS moderno) ----------
 const isIOS = (() => {
   const ua = navigator.userAgent || navigator.vendor || window.opera;
-  // iOS detection covering iPhone/iPod/iPad and iPadOS (MacIntel + touch)
   return (/iPad|iPhone|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1));
 })();
 
@@ -33,6 +47,7 @@ AFRAME.registerComponent('face-camera', {
   init: function () {
     this.cameraEl = document.querySelector('#camera');
     this.applyDoubleSideOnce();
+    // NOTA: non applichiamo flip qui globalmente se non richiesto; il valore proviene dall'attributo flip
     if (this.data.flip) this.applyFlipOnce();
   },
   applyDoubleSideOnce: function() {
@@ -41,12 +56,15 @@ AFRAME.registerComponent('face-camera', {
     try {
       if (Array.isArray(mesh.material)) mesh.material.forEach(m => { m.side = THREE.DoubleSide; m.needsUpdate = true; });
       else if (mesh.material) { mesh.material.side = THREE.DoubleSide; mesh.material.needsUpdate = true; }
-    } catch (e) { }
+    } catch (e) { /* ignore */ }
   },
   applyFlipOnce: function() {
+    // usa scale negativa solo se richiesto; se l'elemento già ha scale personalizzate rispettale
     const sAttr = this.el.getAttribute('scale') || '1 1 1';
     const parts = (typeof sAttr === 'string' ? sAttr.split(' ') : [sAttr.x, sAttr.y, sAttr.z]);
-    const sx = -Math.abs(parseFloat(parts[0] || 1)), sy = parseFloat(parts[1] || 1), sz = parseFloat(parts[2] || 1);
+    const sx = -Math.abs(parseFloat(parts[0] || 1));
+    const sy = parseFloat(parts[1] || 1);
+    const sz = parseFloat(parts[2] || 1);
     this.el.setAttribute('scale', `${sx} ${sy} ${sz}`);
   },
   tick: (function () {
@@ -89,10 +107,12 @@ startBtn.addEventListener('click', async () => {
   createParticles(36); createSmoke(25); animateLight();
   setupInteractions();
 
-  // Applica face-camera (Y-only) con flip a tutti gli item
+  // Applica face-camera (Y-only) e imposta flip solo se flipMap[id] === true
   itemIds.forEach(id => {
     const el = document.getElementById(id); if (!el) return;
-    el.setAttribute('face-camera', 'mode: y; flip: true; lockX: true; lockZ: true');
+    const flip = !!flipMap[id];
+    // setAttribute con flip appropriato
+    el.setAttribute('face-camera', `mode: y; flip: ${flip}; lockX: true; lockZ: true`);
   });
 });
 
@@ -128,7 +148,7 @@ function distributeItemsCircle(radius=2.0, height=2.2){
     const x=radius*Math.cos(angle), z=radius*Math.sin(angle), y=height;
     el.setAttribute('position',`${x.toFixed(3)} ${y.toFixed(3)} ${z.toFixed(3)}`);
     el.setAttribute('scale','0.95 0.95 0.95'); el.classList.add('clickable');
-    const amp=0.08+Math.random()*0.04, dur=800+Math.random()*600; // velocità aumentata
+    const amp=0.08+Math.random()*0.04, dur=800+Math.random()*600; // velocità più alta
     el.setAttribute('animation__float',`property: position; to: ${x.toFixed(3)} ${(y+amp).toFixed(3)} ${z.toFixed(3)}; dur:${dur}; dir:alternate; loop:true; easing:easeInOutSine`);
   });
 }
@@ -178,16 +198,15 @@ function setupInteractions(){
 
   preserveVideoAspect();
 
-  // QR click: comportamento diverso per iOS vs altri
+  // QR click: comportamento distinto iOS vs altri
   qr.addEventListener('click', async ()=>{
     if (isIOS) {
-      // iOS non mostra il video: mostra direttamente i loghi (non fermare la musica)
+      // iOS: mostra i loghi al posto del video (video non parte su molti iPhone)
       qr.setAttribute('visible', false);
       demoVideo.setAttribute('visible', false);
       replayLogo.setAttribute('visible', true);
       whatsappLogo.setAttribute('visible', true);
       replayLogo.classList.add('clickable'); whatsappLogo.classList.add('clickable');
-      // non toccare bgMusic su iOS (lasciare la musica in sottofondo)
       return;
     }
 
@@ -210,38 +229,34 @@ function setupInteractions(){
 
   replayLogo.addEventListener('click', async ()=>{
     if (!replayLogo.getAttribute('visible')) return;
-    // On iOS replay logo should probably replay the demo video — but since iOS couldn't autoplay,
-    // we'll try to open the video in a new tab as fallback (optional). For now, attempt to play normally.
     replayLogo.setAttribute('visible', false); whatsappLogo.setAttribute('visible', false);
     replayLogo.classList.remove('clickable'); whatsappLogo.classList.remove('clickable');
     demoVideo.setAttribute('visible', true);
     try { holoVideo.volume = 1.0; await holoVideo.play(); bgSavedTime = bgMusic.currentTime; bgMusic.pause(); } catch (e) {
-      // se fallisce (es. iOS), mostra di nuovo i loghi così l'utente può comunque usare WhatsApp
+      // fall back: mantieni i loghi visibili
       demoVideo.setAttribute('visible', false);
       replayLogo.setAttribute('visible', true); whatsappLogo.setAttribute('visible', true);
       replayLogo.classList.add('clickable'); whatsappLogo.classList.add('clickable');
     }
   });
 
-  // AGGIORNATO: link al canale WhatsApp fornito
+  // WhatsApp channel link aggiornato
   whatsappLogo.addEventListener('click', ()=>{ window.open('https://whatsapp.com/channel/0029VbCDIZCJUM2SokRjrw2W','_blank'); });
 
   itemIds.forEach(id=>{
     const el=document.getElementById(id); if(!el) return;
     el.addEventListener('click',()=>{
-      // 1) linkMap prima (non stoppare bgMusic)
+      // linkMap prima (non fermare bgMusic)
       if (linkMap[id]) { window.open(linkMap[id], '_blank'); return; }
-      // 2) audio locale: play una sola volta per item
       if (audioMap[id]) {
         if (playingAudios[id]) return; // già in riproduzione
-        try { bgSavedTime = bgMusic.currentTime; bgMusic.pause(); } catch (e) { }
+        try { bgSavedTime = bgMusic.currentTime; bgMusic.pause(); } catch (e) {}
         const a = new Audio(audioMap[id]); playingAudios[id] = a;
         const p = a.play();
         if (p && p.then) p.catch(()=>{ playingAudios[id]=null; try{ bgMusic.play(); }catch(e){} });
         a.addEventListener('ended', ()=>{ playingAudios[id] = null; try{ bgMusic.currentTime = bgSavedTime || 0; bgMusic.play(); }catch(e){} });
         return;
       }
-      // fallback
       window.open('https://instagram.com', '_blank');
     });
   });
