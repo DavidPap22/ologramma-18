@@ -1,34 +1,40 @@
-// script.js (AGGIORNATO - gestione robusta del pulsante ENTRA su desktop/Android/iOS)
-// Integra: face-camera, iOS-friendly video start, single-play audio items, particelle veloci, WhatsApp link.
+// ---------- script.js completo e robusto ----------
+// - face-camera (Y-only)
+// - gestione iOS-friendly per il video (overlay tap)
+// - single-play per audio item
+// - particles / smoke più veloci
+// - link WhatsApp aggiornato
+// - attachStartHandlersFlexible() crea fallback "ENTRA" se necessario
 
-// ---------- Selettori DOM (tenta piu' id/class possibili per il bottone START) ----------
+// ---------- Selettori DOM principali ----------
+const startOverlay = document.getElementById('startOverlay') || document.querySelector('.startOverlay');
 const startBtnCandidates = [
   document.getElementById('startBtn'),
   document.getElementById('enterBtn'),
   document.querySelector('.enterBtn'),
   document.getElementById('start-button'),
+  document.querySelector('#startOverlay button'),
   null
 ].filter(Boolean);
 
-const startOverlay = document.getElementById('startOverlay') || document.querySelector('.startOverlay');
 const bgMusic = document.getElementById('bgMusic');
 const cameraStreamEl = document.getElementById('cameraStream');
-const holoVideo = document.getElementById('holoVideo');
-const demoVideo = document.getElementById('demoVideo');
+const holoVideo = document.getElementById('holoVideo'); // <video> element
+const demoVideo = document.getElementById('demoVideo'); // a-video or a-entity
 const qr = document.getElementById('qrCode') || document.getElementById('qr');
 const replayLogo = document.getElementById('replayLogo');
 const whatsappLogo = document.getElementById('whatsappLogo');
 const videoTapOverlay = document.getElementById('videoTapOverlay');
 const tapToPlay = document.getElementById('tapToPlay');
-
 const itemIds = ['DonBosco','Radio','EtnaEnsemble','Tromba','Catania','Eduverse','Fantacalcio','Dj','Ballerino'];
+
 let bgSavedTime = 0;
 const wait = ms => new Promise(r => setTimeout(r, ms));
 
-// Safety: ensure holoVideo exists
+// safety: set video volume high when possible
 try { if (holoVideo) holoVideo.volume = 1.0; } catch(e){}
 
-// ----------------- A-Frame component face-camera (Y-only by default) -----------------
+// ----------------- AFRAME COMPONENT: face-camera (Y-only) -----------------
 if (window.AFRAME) {
   AFRAME.registerComponent('face-camera', {
     schema: { mode: { type: 'string', default: 'y' }, flip: { type: 'boolean', default: false }, lockX: { type: 'boolean', default: true }, lockZ: { type: 'boolean', default: true } },
@@ -77,88 +83,114 @@ if (window.AFRAME) {
   });
 }
 
-// ---------- Funzione unica di start dell'esperienza ----------
+// ---------- startExperience (chiamata quando l'utente preme ENTRA) ----------
 async function startExperience(eventOriginIsUserGesture = false) {
-  // eventOriginIsUserGesture: se true, indica che il click/touch è sicuramente gesto nativo
-  try { if (bgMusic) await bgMusic.play(); } catch(e){ /* potrebbe essere bloccato fino a gesture */ }
+  try { if (bgMusic) await bgMusic.play(); } catch(e){ /* autoplay blocked fino a gesture */ }
 
-  // nascondi overlay start (se presente)
-  if (startOverlay) {
-    try { startOverlay.style.display = 'none'; } catch(e){}
-  } else {
-    // se non c'è overlay ma c'è un elemento body, scrollTo top per sicurezza
-    try{ document.body.focus(); }catch(e){}
-  }
+  if (startOverlay) try { startOverlay.style.display = 'none'; } catch(e){}
 
-  // avvia fotocamera / stream
+  // avvia fotocamera
   try {
     await startCameraWithRetries();
   } catch(e) {
-    alert('Permesso fotocamera negato o impossibile avviare la fotocamera. Controlla i permessi del browser.');
+    alert('Impossibile avviare la fotocamera. Controlla i permessi del browser.');
     return;
   }
 
-  // posiziona elementi, particles, ecc.
+  // predisponi scena e interazioni
   distributeItemsCircle(2.0, 2.2);
   createParticles(36); createSmoke(25); animateLight();
-  setupInteractions(); // registra interazioni (include iOS friendly per video)
+  setupInteractions();
 
-  // applica il componente face-camera a tutti gli item (flip per farli front-facing)
+  // applica face-camera (flip per front-facing)
   itemIds.forEach(id => {
     const el = document.getElementById(id) || document.querySelector(`#${id}`);
     if (!el) return;
-    try { el.setAttribute('face-camera', 'mode: y; flip: true; lockX: true; lockZ: true'); } catch(e){}
+    try { el.setAttribute('face-camera','mode: y; flip: true; lockX: true; lockZ: true'); } catch(e){}
   });
-
-  // se l'evento che ha scatenato startExperience era un gesto nativo (click/touch),
-  // proviamo a lanciare eventuali media che richiedono gesture: ad es. bgMusic già tentato sopra,
-  // manteniamo behavior standard (video avviato solo su QR click o overlay tap).
 }
 
-// ---------- Attach robust listeners to start controls ----------
-// Supporta click e touchend; prova prima i candidate buttons, altrimenti ascolta click sull'intero overlay
-function attachStartHandlers() {
-  const boundStart = (e) => {
-    // Segnala che abbiamo un gesto nativo dell'utente (utile per play() su alcuni browser)
-    e && e.preventDefault && e.preventDefault();
-    startExperience(true);
+// ---------- attachStartHandlersFlexible + fallback button ----------
+function attachStartHandlersFlexible() {
+  const candidates = startBtnCandidates.concat([document.querySelector('#startOverlay'), document.querySelector('.startOverlay')]).filter(Boolean);
+  let started = false;
+  const boundStart = (ev) => {
+    if (started) return;
+    started = true;
+    try { if (ev && ev.preventDefault) ev.preventDefault(); } catch(e){}
+    try { startExperience(true); } catch(e){}
   };
 
-  // If we found explicit buttons, attach to them
-  if (startBtnCandidates.length > 0) {
-    startBtnCandidates.forEach(btn => {
-      btn.addEventListener('click', boundStart, { passive: false });
-      btn.addEventListener('touchend', boundStart, { passive: false });
+  if (candidates.length) {
+    candidates.forEach(btn => {
+      try {
+        btn.style.touchAction = btn.style.touchAction || 'manipulation';
+        btn.addEventListener('click', boundStart, { passive: false });
+        btn.addEventListener('pointerup', boundStart, { passive: false });
+        btn.addEventListener('touchend', boundStart, { passive: false });
+      } catch(e){}
     });
+    // se nessuno preme entro 1200ms creiamo fallback
+    setTimeout(()=>{ if (!started) createFallbackStartButton(boundStart); }, 1200);
     return;
   }
-
-  // Fallback 1: attach to overlay if present
-  if (startOverlay) {
-    startOverlay.addEventListener('click', boundStart, { passive: false });
-    startOverlay.addEventListener('touchend', boundStart, { passive: false });
-    return;
-  }
-
-  // Fallback 2: attach to whole document body (last resort)
-  document.body.addEventListener('click', function onBodyClick(e){
-    // attach once: remove this listener after first use
-    document.body.removeEventListener('click', onBodyClick);
-    startExperience(true);
-  }, { once: true, passive: true });
-
-  // Also listen for Enter key as backup
-  window.addEventListener('keydown', function onKey(ev){
-    if (ev.key === 'Enter') {
-      window.removeEventListener('keydown', onKey);
-      startExperience(true);
-    }
-  });
+  // nessun candidato trovato
+  createFallbackStartButton(boundStart);
 }
 
-// ---------- startCameraWithRetries (come prima, robusto) ----------
+function createFallbackStartButton(handler) {
+  if (document.getElementById('emergencyStartBtn')) return;
+  const btn = document.createElement('button');
+  btn.id = 'emergencyStartBtn';
+  btn.textContent = 'ENTRA';
+  Object.assign(btn.style, {
+    position: 'fixed',
+    left: '50%',
+    top: '50%',
+    transform: 'translate(-50%, -50%)',
+    zIndex: '99999999',
+    padding: '18px 36px',
+    borderRadius: '999px',
+    border: 'none',
+    background: '#ff2b2b',
+    color: '#fff',
+    fontSize: '1.2rem',
+    fontWeight: '700',
+    boxShadow: '0 12px 40px rgba(0,0,0,0.35)',
+    cursor: 'pointer',
+    opacity: '0.98'
+  });
+  const hint = document.createElement('div');
+  hint.id = 'emergencyStartHint';
+  hint.textContent = 'Tocca per entrare';
+  Object.assign(hint.style, {
+    position: 'fixed',
+    left: '50%',
+    top: 'calc(50% + 64px)',
+    transform: 'translateX(-50%)',
+    zIndex: '99999999',
+    color: '#fff',
+    fontSize: '0.95rem',
+    opacity: '0.95'
+  });
+  document.body.appendChild(btn);
+  document.body.appendChild(hint);
+
+  const onceHandler = function(ev){
+    try { handler(ev); } catch(e){}
+    setTimeout(()=>{ try{ btn.remove(); hint.remove(); } catch(e){} }, 250);
+    btn.removeEventListener('click', onceHandler);
+    btn.removeEventListener('pointerup', onceHandler);
+    btn.removeEventListener('touchend', onceHandler);
+  };
+
+  btn.addEventListener('click', onceHandler, { passive: false });
+  btn.addEventListener('pointerup', onceHandler, { passive: false });
+  btn.addEventListener('touchend', onceHandler, { passive: false });
+}
+
+// ---------- startCameraWithRetries ----------
 async function startCameraWithRetries(){
-  // se non esiste l'elemento video di camera, crealo (compatibilità)
   if (!cameraStreamEl) throw new Error('cameraStream element mancante');
   cameraStreamEl.setAttribute('playsinline',''); cameraStreamEl.setAttribute('webkit-playsinline','');
   cameraStreamEl.setAttribute('autoplay',''); cameraStreamEl.setAttribute('muted',''); cameraStreamEl.setAttribute('crossorigin','anonymous');
@@ -177,12 +209,10 @@ async function startCameraWithRetries(){
   cameraStreamEl.muted = true;
   cameraStreamEl.playsInline = true;
   try { const p = cameraStreamEl.play(); if (p && p.then) await p; } catch(e){}
-  // assegna al sky se esiste
   const sky = document.getElementById('cameraSky') || document.querySelector('a-sky');
   if (sky) {
     try { sky.setAttribute('material','shader: flat; src: #cameraStream'); forceSkyTextureUpdate(sky,1400,80); } catch(e){}
   }
-  // wait breve affinché lo stream inizi
   await new Promise(res => setTimeout(res, 200));
 }
 
@@ -197,7 +227,7 @@ function forceSkyTextureUpdate(skyEl,d=1400,i=80){
   }, i);
 }
 
-// ---------- Distribuzione items su cerchio (unchanged, leggermente semplificata) ----------
+// ---------- distributeItemsCircle ----------
 function distributeItemsCircle(radius=2.0, height=2.2){
   const count = itemIds.length;
   const angleStep = (2*Math.PI)/count;
@@ -215,13 +245,12 @@ function distributeItemsCircle(radius=2.0, height=2.2){
   });
 }
 
-// ---------- Particelle / fumo (veloci) ----------
+// ---------- particles / smoke ----------
 function createParticles(count=32){
-  const root = document.getElementById('particles') || document.createElement('a-entity');
-  if (!document.getElementById('particles')) {
-    root.id = 'particles';
-    const scene = document.querySelector('a-scene');
-    if (scene) scene.appendChild(root);
+  let root = document.getElementById('particles');
+  if (!root) {
+    root = document.createElement('a-entity'); root.id = 'particles';
+    const scene = document.querySelector('a-scene'); if (scene) scene.appendChild(root);
   } else {
     while(root.firstChild) root.removeChild(root.firstChild);
   }
@@ -259,7 +288,7 @@ function createSmoke(count=20){
 
 function animateLight(){ const light = document.getElementById('pulseLight'); if(light) light.setAttribute('animation','property:intensity; to:1.1; dur:1200; dir:alternate; loop:true; easing:easeInOutSine'); }
 
-// ---------- Interazioni (iOS-friendly) ----------
+// ---------- interactions (iOS-friendly) ----------
 function setupInteractions(){
   const audioMap = { 'Fantacalcio':'fantacalcio.mp3', 'Dj':'dj.mp3' };
   const linkMap = {
@@ -276,7 +305,6 @@ function setupInteractions(){
 
   const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
 
-  // QR behavior (uses qr id or qrCode)
   const qrEl = qr || document.getElementById('qr');
   if (qrEl) {
     qrEl.addEventListener('click', async ()=>{
@@ -305,7 +333,6 @@ function setupInteractions(){
     });
   }
 
-  // replay behavior
   if (replayLogo) {
     replayLogo.addEventListener('click', async ()=>{
       if (!replayLogo.getAttribute('visible')) return;
@@ -317,7 +344,6 @@ function setupInteractions(){
     }, { passive: true });
   }
 
-  // whatsapp link
   if (whatsappLogo) {
     whatsappLogo.addEventListener('click', ()=> {
       if (!whatsappLogo.getAttribute('visible')) return;
@@ -325,16 +351,15 @@ function setupInteractions(){
     }, { passive: true });
   }
 
-  // item clicks
+  const playingAudios = {}; // local to function to avoid accidental global reuse
+
   itemIds.forEach(id => {
     const el = document.getElementById(id) || document.querySelector(`#${id}`);
     if (!el) return;
     el.addEventListener('click', ()=>{
-      // link first
       if (linkMap[id]) { window.open(linkMap[id], '_blank'); return; }
-      // audio local
       if (audioMap[id]) {
-        if (playingAudios[id]) return; // già in riproduzione
+        if (playingAudios[id]) return;
         try { if (bgMusic) bgSavedTime = bgMusic.currentTime; if (bgMusic) bgMusic.pause(); } catch(e){}
         const a = new Audio(audioMap[id]);
         playingAudios[id] = a;
@@ -343,7 +368,6 @@ function setupInteractions(){
         a.addEventListener('ended', ()=>{ playingAudios[id] = null; try{ if (bgMusic) { bgMusic.currentTime = bgSavedTime || 0; bgMusic.play(); } } catch(e){} });
         return;
       }
-      // fallback
       window.open('https://instagram.com','_blank');
     }, { passive: true });
   });
@@ -368,8 +392,8 @@ function preserveVideoAspect(){
 // ---------- cleanup ----------
 window.addEventListener('beforeunload', ()=>{ try{ if (bgMusic) bgMusic.pause(); }catch(e){} try{ if (holoVideo) holoVideo.pause(); }catch(e){} });
 
-// ---------- inizializzazione: aggancia i listener di start su DOMContentLoaded ----------
+// ---------- inizializzazione ----------
 window.addEventListener('DOMContentLoaded', ()=>{
-  attachStartHandlers();
-  // se vuoi forzare la preload delle risorse (opzionale)
+  attachStartHandlersFlexible();
+  // eventuale preload o altre inizializzazioni leggere possono andare qui
 });
