@@ -1,4 +1,4 @@
-// ---------- script.js completo: WebP/GIF + mp3 per iOS + tutte le funzionalità ----------
+// ---------- script.js completo: WebP/GIF + mp3 per iOS + tutte le funzionalità ---------
 
 // ---------- Config e Variabili DOM ----------
 const DEMO_DURATION_MS = 28000; // il video dura 28 secondi
@@ -372,3 +372,4 @@ window.addEventListener('beforeunload', ()=> {
 });
 
 // Inizializza interactions all'avvio (startBtn click inserisce setupInteractions)
+
